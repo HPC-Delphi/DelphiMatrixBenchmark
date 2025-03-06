@@ -1,4 +1,4 @@
-program HPCMatrixBenchmark;
+program DelphiMatrixBenchmark;
 
 {$APPTYPE CONSOLE}
 
@@ -189,3 +189,4 @@ begin
       Writeln(E.ClassName, ': ', E.Message);
   end;
 end.
+
