@@ -35,7 +35,7 @@ uses
 ///   T: Integer;
 /// begin
 ///   T := 4; // Use 4 threads
-///   mm_par(@A[0], @B[0], @C[0], N, T);
+///   MulMatNaive(@A[0], @B[0], @C[0], N, T);
 /// end;
 /// </code>
 /// </example>
@@ -70,7 +70,7 @@ procedure MulMatNaive(A, B, C: PDouble; N, T: Integer); cdecl; external 'openmp_
 ///   T: Integer;
 /// begin
 ///   T := 8; // Use 8 threads
-///   mm_strassen(@A[0], @B[0], @C[0], N, T);
+///   MulMatStrassen(@A[0], @B[0], @C[0], N, T);
 /// end;
 /// </code>
 /// </example>
