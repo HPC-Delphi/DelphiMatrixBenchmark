@@ -17,7 +17,7 @@ object Form1: TForm1
   object GroupBox1: TGroupBox
     Left = 8
     Top = 8
-    Width = 393
+    Width = 310
     Height = 137
     BiDiMode = bdLeftToRight
     Caption = 'Parameters'
@@ -53,7 +53,7 @@ object Form1: TForm1
       MaxValue = 0
       MinValue = 0
       TabOrder = 0
-      Value = 1024
+      Value = 512
     end
     object SpinEdit2: TSpinEdit
       Left = 16
@@ -73,20 +73,20 @@ object Form1: TForm1
       MaxValue = 0
       MinValue = 0
       TabOrder = 2
-      Value = 10
+      Value = 5
     end
   end
   object GroupBox2: TGroupBox
-    Left = 407
+    Left = 324
     Top = 8
-    Width = 225
+    Width = 308
     Height = 137
     Caption = 'Parallel Implementations'
     TabOrder = 1
     object CheckListBox1: TCheckListBox
       Left = 16
       Top = 24
-      Width = 193
+      Width = 281
       Height = 97
       ItemHeight = 15
       TabOrder = 0

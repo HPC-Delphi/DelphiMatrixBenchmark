@@ -19,16 +19,18 @@ type
   procedure MatrixMulNaive(var A, B, C: TDoubleArray; N, T: Integer);
   procedure MatrixMulNaiveSystemThreading(var A, B, C: TDoubleArray; N, T: Integer);
   procedure MatrixMulNaiveOmniThreadLibrary(var A, B, C: TDoubleArray; N, T: Integer);
+  procedure MatrixMulNaiveSeqOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
   procedure MatrixMulNaiveOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
   procedure MatrixMulStrassenOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
 
 const
   AvailableImpl: array[0..4] of TMatrixMulImplementation = (
-    (Name: 'Naive'; Proc: MatrixMulNaive),
-    (Name: 'Naive (System.Threading)'; Proc: MatrixMulNaiveSystemThreading),
-    (Name: 'Naive (OmniThreadLibrary)'; Proc: MatrixMulNaiveOmniThreadLibrary),
-    (Name: 'Naive (OpenMPMatrixMul)'; Proc: MatrixMulNaiveOpenMP),
-    (Name: 'Strassen (OpenMPMatrixMul)'; Proc: MatrixMulStrassenOpenMP)
+    (Name: 'Naïve (Sequential: Native Delphi)'; Proc: MatrixMulNaive),
+    (Name: 'Naïve (Parallel: System.Threading)'; Proc: MatrixMulNaiveSystemThreading),
+    (Name: 'Naïve (Parallel: OmniThreadLibrary)'; Proc: MatrixMulNaiveOmniThreadLibrary),
+    (Name: 'Naïve (Sequential: OpenMPMatrixMul)'; Proc: MatrixMulNaiveSeqOpenMP),
+    (Name: 'Naïve (Parallel: OpenMPMatrixMul)'; Proc: MatrixMulNaiveOpenMP)
+    //(Name: 'Strassen (Parallel: OpenMPMatrixMul)';Proc: MatrixMulStrassenOpenMP)
   );
 
 implementation
@@ -104,6 +106,14 @@ begin
       end;
     end
   );
+end;
+
+{ Matrix multiplication using the Naive Sequential implementation. }
+procedure MatrixMulNaiveSeqOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
+const
+  Threads : Integer = 1;
+begin
+  MulMatNaive(@A[0], @B[0], @C[0], N, Threads);
 end;
 
 { Matrix multiplication using the Naive OpenMP implementation. }

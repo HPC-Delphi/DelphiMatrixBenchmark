@@ -72,9 +72,9 @@ begin
   Self.Caption := 'DelphiMatrixBenchmark';
 
   { Parameters }
-  SpinEdit1.Value := 1024;
+  SpinEdit1.Value := 512;
   SpinEdit2.Value := 4;
-  SpinEdit3.Value := 10;
+  SpinEdit3.Value := 5;
 
   { Parallel Implementations }
   CheckListBox1.Clear;
@@ -244,14 +244,5 @@ begin
 
   TPageControl1.Visible := True;
 end;
-
-{ *
-
-  Para cada ejecución:
-  - Crear e inicializar matrices (valores deterministas simples)
-  - Multiplicar (medir tiempo y acumular)
-  - Comprobar resultado
-
-  * }
 
 end.
