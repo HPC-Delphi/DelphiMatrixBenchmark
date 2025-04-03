@@ -5,9 +5,9 @@ uses
   Form in 'Form.pas' {Form1},
   Benchmark in 'Benchmark.pas',
   MatrixMulImplementations in 'MatrixMulImplementations.pas',
-  OpenMPMatrixLib in 'OpenMPMatrixLib.pas',
   Vcl.Themes,
-  Vcl.Styles;
+  Vcl.Styles,
+  OpenMPMatrix;
 
 {$R *.res}
 

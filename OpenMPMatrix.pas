@@ -1,12 +1,15 @@
-unit OpenMPMatrixLib;
+unit OpenMPMatrix;
 
 interface
 
 uses
   System.SysUtils;
 
+const
+  DLLPATH = '../../openmp_matrix_delphi.dll';
+
 /// <summary>
-/// Performs parallel matrix multiplication using OpenMP.
+/// Performs parallel matrix multiplication using the Gustavson algorithm with OpenMP.
 /// </summary>
 /// <remarks>
 /// This function multiplies two square matrices of size N x N in parallel using OpenMP,
@@ -39,7 +42,7 @@ uses
 /// end;
 /// </code>
 /// </example>
-procedure MulMatNaive(A, B, C: PDouble; N, T: Integer); cdecl; external 'openmp_matrix_lib.dll' name 'mm_naive';
+procedure MulMatGustavson(A, B, C: PDouble; N, T: Integer); cdecl; external DLLPATH name 'mm_gustavson';
 
 /// <summary>
 /// Performs matrix multiplication using the Strassen algorithm with OpenMP.
@@ -74,7 +77,7 @@ procedure MulMatNaive(A, B, C: PDouble; N, T: Integer); cdecl; external 'openmp_
 /// end;
 /// </code>
 /// </example>
-procedure MulMatStrassen(A, B, C: PDouble; N, T: Integer); cdecl; external 'openmp_matrix_lib.dll' name 'mm_strassen';
+procedure MulMatStrassen(A, B, C: PDouble; N, T: Integer); cdecl; external DLLPATH name 'mm_strassen';
 
 implementation
 

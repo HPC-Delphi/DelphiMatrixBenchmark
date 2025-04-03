@@ -3,7 +3,7 @@ unit MatrixMulImplementations;
 interface
 
 uses
-  SysUtils, System.Threading, OpenMPMatrixLib, OtlParallel;
+  SysUtils, System.Threading, OpenMPMatrix, OtlParallel;
 
 type
   TDoubleArray = array of Double;
@@ -24,13 +24,13 @@ type
   procedure MatrixMulStrassenOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
 
 const
-  AvailableImpl: array[0..4] of TMatrixMulImplementation = (
-    (Name: 'Naïve (Sequential: Native Delphi)'; Proc: MatrixMulNaive),
-    (Name: 'Naïve (Parallel: System.Threading)'; Proc: MatrixMulNaiveSystemThreading),
-    (Name: 'Naïve (Parallel: OmniThreadLibrary)'; Proc: MatrixMulNaiveOmniThreadLibrary),
-    (Name: 'Naïve (Sequential: OpenMPMatrixMul)'; Proc: MatrixMulNaiveSeqOpenMP),
-    (Name: 'Naïve (Parallel: OpenMPMatrixMul)'; Proc: MatrixMulNaiveOpenMP)
-    //(Name: 'Strassen (Parallel: OpenMPMatrixMul)';Proc: MatrixMulStrassenOpenMP)
+  AvailableImpl: array[0..5] of TMatrixMulImplementation = (
+    (Name: 'Gustavson (Sequential: Native Delphi)'; Proc: MatrixMulNaive),
+    (Name: 'Gustavson (Parallel: System.Threading)'; Proc: MatrixMulNaiveSystemThreading),
+    (Name: 'Gustavson (Parallel: OmniThreadLibrary)'; Proc: MatrixMulNaiveOmniThreadLibrary),
+    (Name: 'Gustavson (Sequential: OpenMPMatrixMul)'; Proc: MatrixMulNaiveSeqOpenMP),
+    (Name: 'Gustavson (Parallel: OpenMPMatrixMul)'; Proc: MatrixMulNaiveOpenMP),
+    (Name: 'Strassen (Parallel: OpenMPMatrixMul)';Proc: MatrixMulStrassenOpenMP)
   );
 
 implementation
@@ -113,13 +113,13 @@ procedure MatrixMulNaiveSeqOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
 const
   Threads : Integer = 1;
 begin
-  MulMatNaive(@A[0], @B[0], @C[0], N, Threads);
+  MulMatGustavson(@A[0], @B[0], @C[0], N, Threads);
 end;
 
 { Matrix multiplication using the Naive OpenMP implementation. }
 procedure MatrixMulNaiveOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
 begin
-  MulMatNaive(@A[0], @B[0], @C[0], N, T);
+  MulMatGustavson(@A[0], @B[0], @C[0], N, T);
 end;
 
 { Matrix multiplication using the Strassen OpenMP implementation. }
@@ -127,8 +127,6 @@ procedure MatrixMulStrassenOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
 begin
   MulMatStrassen(@A[0], @B[0], @C[0], N, T);
 end;
-
-
 
 end.
 

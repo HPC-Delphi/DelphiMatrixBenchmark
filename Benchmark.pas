@@ -7,7 +7,7 @@ uses
   Math,
   Diagnostics,
   MatrixMulImplementations,
-  OpenMPMatrixLib;
+  OpenMPMatrix;
 
 type
   TResult = record
@@ -76,7 +76,7 @@ var
   ElapsedS, SumElapsedS, AvgElapsedS, MinElapsedS, MaxElapsedS: Double;
   CheckOK: Boolean;
 begin
-  for I := 0 to High(Implementations) do
+  for i := 0 to High(Implementations) do
   begin
     MinElapsedS := Infinity;
     MaxElapsedS := NegInfinity;
@@ -85,16 +85,16 @@ begin
     for j := 0 to S - 1 do
     begin
       AllocateMatrices;
-      InitializeMatrices(j);
+      InitializeMatrices(i*j);
 
       Stopwatch := Stopwatch.StartNew;
-      Implementations[I].Proc(A, B, C, N, T);
+      Implementations[i].Proc(A, B, C, N, T);
       Stopwatch.Stop;
       ElapsedS := Stopwatch.ElapsedMilliseconds / 1000.0;
       SumElapsedS := SumElapsedS + ElapsedS;
 
       // Verificar el resultado usando CheckResult
-      if not CheckResult(j) then
+      if not CheckResult(i*j) then
       begin
         CheckOK := False;
         FreeMatrices;
@@ -111,21 +111,21 @@ begin
 
     AvgElapsedS := SumElapsedS / S;
 
-    Results[I].Name := Implementations[I].Name;
+    Results[i].Name := Implementations[i].Name;
     if not CheckOK then
     begin
-      Results[I].TotalTime := Infinity;
-      Results[I].AvgTime   := Infinity;
-      Results[I].MinTime   := Infinity;
-      Results[I].MaxTime   := Infinity;
+      Results[i].TotalTime := Infinity;
+      Results[i].AvgTime   := Infinity;
+      Results[i].MinTime   := Infinity;
+      Results[i].MaxTime   := Infinity;
     end
     else
     begin
       AvgElapsedS := SumElapsedS / S;
-      Results[I].TotalTime := SumElapsedS;
-      Results[I].AvgTime   := AvgElapsedS;
-      Results[I].MinTime   := MinElapsedS;
-      Results[I].MaxTime   := MaxElapsedS;
+      Results[i].TotalTime := SumElapsedS;
+      Results[i].AvgTime   := AvgElapsedS;
+      Results[i].MinTime   := MinElapsedS;
+      Results[i].MaxTime   := MaxElapsedS;
     end;
   end;
 end;
