@@ -16,23 +16,10 @@ type
   TForm1 = class(TForm)
     { Parameters }
     GroupBox1: TGroupBox;
-    Label1: TLabel; // Matrix Size
-    Label2: TLabel; // Threads
-    Label3: TLabel; // Samples
-    SpinEdit1: TSpinEdit; // N
-    SpinEdit3: TSpinEdit; // S
-    SpinEdit2: TSpinEdit; // T
-    { Parallel Implementations }
-    GroupBox2: TGroupBox;
-    CheckListBox1: TCheckListBox; // Implementations
+    Label1: TLabel; // Samples
+    SpinEdit1: TSpinEdit; // Implementations
     { Run Benchmark }
     Button1: TButton;
-    ProgressBar1: TProgressBar;
-    { Benchmark Parameters }
-    Panel1: TPanel;
-    Panel2: TPanel;
-    Label4: TLabel;
-    Label5: TLabel;
     { Results }
     GroupBox3: TGroupBox;
     TTabSheet1: TTabSheet;
@@ -41,10 +28,30 @@ type
     TTabSheet2: TTabSheet;
     Chart1: TChart;
     Series1: TBarSeries;
+    Shape1: TShape;
+    SpinEdit4: TSpinEdit;
+    SpinEdit5: TSpinEdit;
+    Label4: TLabel;
+    Shape2: TShape;
+    Shape3: TShape;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label8: TLabel;
+    StaticText1: TStaticText;
+    Label9: TLabel;
+    Label10: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    GroupBox4: TGroupBox;
+    Label2: TLabel;
+    SpinEdit2: TSpinEdit;
+    Label3: TLabel;
+    SpinEdit3: TSpinEdit;
+    CheckListBox2: TCheckListBox;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     function GetParameters: Boolean;
-    procedure ShowBenchmarkInfo;
     procedure ShowResults;
   private
     { Private declarations }
@@ -57,7 +64,8 @@ type
 var
   Form1: TForm1;
   Benchmark: TBenchmark;
-  N, T, S: Integer;
+  M, K, N: Integer;
+  T, S: Integer;
   SelectedImpl: array of TMatrixMulImplementation;
 
 implementation
@@ -73,14 +81,18 @@ begin
 
   { Parameters }
   SpinEdit1.Value := 512;
+  SpinEdit4.Value := 512;
+  SpinEdit5.Value := 512;
+
   SpinEdit2.Value := 4;
   SpinEdit3.Value := 5;
 
   { Parallel Implementations }
-  CheckListBox1.Clear;
+  CheckListBox2.Clear;
+  CheckListBox2.Font.Name := 'Courier New';
   for Impl := 0 to High(AvailableImpl) do
   begin
-    CheckListBox1.Items.Add(AvailableImpl[Impl].Name);
+    CheckListBox2.Items.Add(AvailableImpl[Impl].Name);
   end;
 
   { Results }
@@ -99,15 +111,8 @@ begin
     Exit;
   end;
 
-  ShowBenchmarkInfo;
-
-  ProgressBar1.Min := 0;
-  ProgressBar1.Max := Length(SelectedImpl) * S;
-
-  ProgressBar1.Position := 0;
-  Benchmark := TBenchmark.Create(N, T, S, SelectedImpl);
+  Benchmark := TBenchmark.Create(M, K, N, T, S, SelectedImpl);
   Benchmark.RunBenchmark;
-  ProgressBar1.Position := Length(SelectedImpl) * S;
 
   ShowResults;
 
@@ -121,29 +126,45 @@ var
   i, count: Integer;
 begin
   // Parameters
-  N := SpinEdit1.Value;
+  M := SpinEdit1.Value;
+  K := SpinEdit4.Value;
+  N := SpinEdit5.Value;
   T := SpinEdit2.Value;
   S := SpinEdit3.Value;
 
+  if M <= 0 then
+  begin
+    ShowMessage('Error: matrix size (M) must be a positive integer');
+    Result := False;
+    Exit;
+  end;
+
+  if K <= 0 then
+  begin
+    ShowMessage('Error: matrix size (K) must be a positive integer');
+    Result := False;
+    Exit;
+  end;
+
   if N <= 0 then
   begin
-    ShowMessage('Error: matrix size (n) must be a positive integer');
+    ShowMessage('Error: matrix size (N) must be a positive integer');
     Result := False;
     Exit;
   end;
 
   if T <= 0 then
   begin
-    ShowMessage('Error: threads (t) must be a positive integer');
+    ShowMessage('Error: threads (T) must be a positive integer');
     Result := False;
     Exit;
   end;
 
   // Implementations
-  SetLength(SelectedImpl, CheckListBox1.Items.count);
+  SetLength(SelectedImpl, CheckListBox2.Items.count);
   count := 0;
-  for i := 0 to CheckListBox1.Items.count - 1 do
-    if CheckListBox1.Checked[i] then
+  for i := 0 to CheckListBox2.Items.count - 1 do
+    if CheckListBox2.Checked[i] then
     begin
       SelectedImpl[count] := AvailableImpl[i];
       Inc(count);
@@ -160,21 +181,6 @@ begin
   SetLength(SelectedImpl, count);
 
   Result := True;
-end;
-
-procedure TForm1.ShowBenchmarkInfo;
-var
-  i: Integer;
-begin
-  Label4.Caption := Format('Benchmarking GEMM [%d,%d] x [%d,%d]', [N, N, N, N])
-    + sLineBreak + Format('Threads: %d', [T]) + sLineBreak +
-    Format('Samples: %d', [S]);
-
-  Label5.Caption := SelectedImpl[0].Name;
-  for i := 1 to High(SelectedImpl) do
-  begin
-    Label5.Caption := Label5.Caption + sLineBreak + SelectedImpl[i].Name;
-  end;
 end;
 
 procedure TForm1.ShowResults;

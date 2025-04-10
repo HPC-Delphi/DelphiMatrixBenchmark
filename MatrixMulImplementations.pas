@@ -3,58 +3,79 @@ unit MatrixMulImplementations;
 interface
 
 uses
-  SysUtils, System.Threading, OpenMPMatrix, OtlParallel;
+  SysUtils, System.Threading, OpenMPMatrix, OtlParallel,
+  ShellAPI, Windows;
 
 type
   TDoubleArray = array of Double;
-  PDoubleArray =  ^TDoubleArray;
+  PDoubleArray = ^TDoubleArray;
 
-  TMatrixMul = procedure(var A, B, C: TDoubleArray; N, T: Integer);
+  TMatrixMul = procedure(var A, B, C: TDoubleArray; M, K, N, T: Integer);
 
   TMatrixMulImplementation = record
     Name: String;
     Proc: TMatrixMul;
   end;
 
-  procedure MatrixMulNaive(var A, B, C: TDoubleArray; N, T: Integer);
-  procedure MatrixMulNaiveSystemThreading(var A, B, C: TDoubleArray; N, T: Integer);
-  procedure MatrixMulNaiveOmniThreadLibrary(var A, B, C: TDoubleArray; N, T: Integer);
-  procedure MatrixMulNaiveSeqOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
-  procedure MatrixMulNaiveOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
-  procedure MatrixMulStrassenOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
+  { Gustavson }
+procedure SeqGustavsonNativeDelphi(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer); { No usa T }
+procedure ParGustavsonSystemThreading(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer); { No permite usar T }
+procedure ParGustavsonOmniThreadLibrary(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer);
+procedure SeqGustavsonOpenMPMatrix(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer); { No usa T }
+procedure ParGustavsonOpenMPMatrix(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer);
+
+{ Strassen }
+procedure SeqStrassenOpenMPMatrix(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer); { No usa T }
+procedure ParStrassenOpenMPMatrix(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer);
 
 const
-  AvailableImpl: array[0..5] of TMatrixMulImplementation = (
-    (Name: 'Gustavson (Sequential: Native Delphi)'; Proc: MatrixMulNaive),
-    (Name: 'Gustavson (Parallel: System.Threading)'; Proc: MatrixMulNaiveSystemThreading),
-    (Name: 'Gustavson (Parallel: OmniThreadLibrary)'; Proc: MatrixMulNaiveOmniThreadLibrary),
-    (Name: 'Gustavson (Sequential: OpenMPMatrixMul)'; Proc: MatrixMulNaiveSeqOpenMP),
-    (Name: 'Gustavson (Parallel: OpenMPMatrixMul)'; Proc: MatrixMulNaiveOpenMP),
-    (Name: 'Strassen (Parallel: OpenMPMatrixMul)';Proc: MatrixMulStrassenOpenMP)
-  );
+  AvailableImpl: array [0 .. 6] of TMatrixMulImplementation =
+    ((Name: '[Native Delphi]     Gustavson (Sequential)';
+    Proc: SeqGustavsonNativeDelphi),
+    (Name: '[System.Threading]  Gustavson (Parallel)';
+    Proc: ParGustavsonSystemThreading),
+    (Name: '[OmniThreadLibrary] Gustavson (Parallel)';
+    Proc: ParGustavsonOmniThreadLibrary),
+    (Name: '[OpenMPMatrix]      Gustavson (Sequential)';
+    Proc: SeqGustavsonOpenMPMatrix),
+    (Name: '[OpenMPMatrix]      Gustavson (Parallel)';
+    Proc: ParGustavsonOpenMPMatrix),
+    (Name: '[OpenMPMatrix]      Strassen  (Sequential)';
+    Proc: SeqStrassenOpenMPMatrix),
+    (Name: '[OpenMPMatrix]      Strassen  (Parallel)';
+    Proc: ParStrassenOpenMPMatrix));
 
 implementation
 
-procedure MatrixMulNaive(var A, B, C: TDoubleArray; N, T: Integer);
+procedure SeqGustavsonNativeDelphi(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer);
 var
-  i, j, k: Integer;
-  aik: Double;
+  i, j, p: Integer;
+  aip: Double;
 begin
 
-  for i := 0 to N - 1 do
+  for i := 0 to M - 1 do
   begin
-    for k := 0 to N - 1 do
+    for p := 0 to K - 1 do
     begin
-      aik := A[i * N + k];
+      aip := A[i * K + p];
       for j := 0 to N - 1 do
       begin
-        C[i * N + j] := C[i * N + j] + aik * B[k * N + j];
+        C[i * N + j] := C[i * N + j] + aip * B[p * N + j];
       end;
     end;
   end;
 end;
 
-procedure MatrixMulNaiveOmniThreadLibrary(var A, B, C: TDoubleArray; N, T: Integer);
+procedure ParGustavsonOmniThreadLibrary(var A, B, C: TDoubleArray;
+  M, K, N, T: Integer);
 var
   A_cp, B_cp, C_cp: TDoubleArray;
 begin
@@ -62,27 +83,25 @@ begin
   B_cp := B;
   C_cp := C;
 
-  Parallel.For(0, N - 1)
-    .NumTasks(T)
-    .Execute(
+  Parallel.For(0, M - 1).NumTasks(T).Execute(
     procedure(i: Integer)
     var
-      j, k: Integer;
-      aik: Double;
+      j, p: Integer;
+      aip: Double;
     begin
-      for k := 0 to N - 1 do
+      for p := 0 to K - 1 do
       begin
-        aik := A_cp[i * N + k];
+        aip := A_cp[i * K + p];
         for j := 0 to N - 1 do
         begin
-          C_cp[i * N + j] := C_cp[i * N + j] + aik * B_cp[k * N + j];
+          C_cp[i * N + j] := C_cp[i * N + j] + aip * B_cp[p * N + j];
         end;
       end;
-    end
-  );
+    end);
 end;
 
-procedure MatrixMulNaiveSystemThreading(var A, B, C: TDoubleArray; N, T: Integer);
+procedure ParGustavsonSystemThreading(var A, B, C: TDoubleArray;
+M, K, N, T: Integer);
 var
   A_cp, B_cp, C_cp: TDoubleArray;
 begin
@@ -90,43 +109,45 @@ begin
   B_cp := B;
   C_cp := C;
 
-  TParallel.For(0, N - 1,
+  TParallel.For(0, M - 1,
     procedure(i: Integer)
     var
-      j, k: Integer;
-      aik: Double;
+      j, p: Integer;
+      aip: Double;
     begin
-      for k := 0 to N - 1 do
+      for p := 0 to K - 1 do
       begin
-        aik := A_cp[i * N + k];
+        aip := A_cp[i * K + p];
         for j := 0 to N - 1 do
         begin
-          C_cp[i * N + j] := C_cp[i * N + j] + aik * B_cp[k * N + j];
+          C_cp[i * N + j] := C_cp[i * N + j] + aip * B_cp[p * N + j];
         end;
       end;
-    end
-  );
+    end);
 end;
 
-{ Matrix multiplication using the Naive Sequential implementation. }
-procedure MatrixMulNaiveSeqOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
-const
-  Threads : Integer = 1;
+procedure SeqGustavsonOpenMPMatrix(var A, B, C: TDoubleArray;
+M, K, N, T: Integer);
 begin
-  MulMatGustavson(@A[0], @B[0], @C[0], N, Threads);
+  MMSeqGustavson(@A[0], @B[0], @C[0], M, K, N);
 end;
 
-{ Matrix multiplication using the Naive OpenMP implementation. }
-procedure MatrixMulNaiveOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
+procedure ParGustavsonOpenMPMatrix(var A, B, C: TDoubleArray;
+M, K, N, T: Integer);
 begin
-  MulMatGustavson(@A[0], @B[0], @C[0], N, T);
+  MMParGustavson(@A[0], @B[0], @C[0], M, K, N, T);
 end;
 
-{ Matrix multiplication using the Strassen OpenMP implementation. }
-procedure MatrixMulStrassenOpenMP(var A, B, C: TDoubleArray; N, T: Integer);
+procedure SeqStrassenOpenMPMatrix(var A, B, C: TDoubleArray;
+M, K, N, T: Integer);
 begin
-  MulMatStrassen(@A[0], @B[0], @C[0], N, T);
+  MMSeqStrassen(@A[0], @B[0], @C[0], M, K, N);
+end;
+
+procedure ParStrassenOpenMPMatrix(var A, B, C: TDoubleArray;
+M, K, N, T: Integer);
+begin
+  MMParStrassen(@A[0], @B[0], @C[0], M, K, N, T);
 end;
 
 end.
-
