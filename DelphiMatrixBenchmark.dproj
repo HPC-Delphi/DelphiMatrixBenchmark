@@ -130,7 +130,10 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="Benchmark.pas"/>
-        <DCCReference Include="MatrixMulImplementations.pas"/>
+        <DCCReference Include="Algorithms\MMGustavson.pas"/>
+        <DCCReference Include="Algorithms\MMStrassen.pas"/>
+        <DCCReference Include="Algorithms\MMImplementations.pas"/>
+        <DCCReference Include="MatrixUtils.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

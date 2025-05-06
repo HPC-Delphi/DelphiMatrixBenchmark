@@ -7,10 +7,9 @@ uses
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.StdCtrls,
   Vcl.Samples.Spin, Vcl.CheckLst, Vcl.ExtCtrls, Vcl.Tabs, Vcl.Grids,
-  Benchmark,
-  MatrixMulImplementations, VclTee.TeeGDIPlus, VclTee.TeEngine, VclTee.TeeProcs,
-  VclTee.Chart, VclTee.Series,
-  Vcl.Styles, Vcl.Themes, VCLTee.TeCanvas;
+  VclTee.TeeGDIPlus, VclTee.TeEngine, VclTee.TeeProcs,
+  VclTee.Chart, VclTee.Series, Vcl.Styles, Vcl.Themes, VCLTee.TeCanvas,
+  Benchmark, MMImplementations;
 
 type
   TForm1 = class(TForm)
@@ -66,7 +65,7 @@ var
   Benchmark: TBenchmark;
   M, K, N: Integer;
   T, S: Integer;
-  SelectedImpl: array of TMatrixMulImplementation;
+  SelectedImpl: array of TMMImplementation;
 
 implementation
 

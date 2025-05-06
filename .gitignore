@@ -38,6 +38,8 @@
 #iOSDevice64/
 #Linux64/
 
+.json
+
 # Delphi compiler-generated binaries (safe to delete)
 *.exe
 # *.dll

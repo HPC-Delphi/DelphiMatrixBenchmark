@@ -4,10 +4,13 @@ uses
   Vcl.Forms,
   Form in 'Form.pas' {Form1},
   Benchmark in 'Benchmark.pas',
-  MatrixMulImplementations in 'MatrixMulImplementations.pas',
   Vcl.Themes,
   Vcl.Styles,
-  OpenMPMatrix;
+  OpenMPMatrix,
+  MMGustavson in 'Algorithms\MMGustavson.pas',
+  MMStrassen in 'Algorithms\MMStrassen.pas',
+  MMImplementations in 'Algorithms\MMImplementations.pas',
+  MatrixUtils in 'MatrixUtils.pas';
 
 {$R *.res}
 

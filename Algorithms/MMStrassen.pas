@@ -1,99 +1,40 @@
-unit MatrixMulImplementations;
+unit MMStrassen;
 
 interface
 
 uses
-  SysUtils, System.Threading, OpenMPMatrix, OtlParallel,
-  ShellAPI, Windows, MatrixUtils, StrassenUtils,System.Generics.Collections,
-  System.Classes;
-
-type
-  TMatrixMul = procedure(var A, B, C: TDoubleArray; M, K, N, T: Integer);
-
-  TMatrixMulImplementation = record
-    Name: String;
-    Proc: TMatrixMul;
-  end;
+  System.Threading, OtlParallel, System.Generics.Collections,
+  MatrixUtils, MMGustavson, OpenMPMatrix;
 
   {NativeDelphi}
-procedure SeqGustavsonNativeDelphi(var A, B, C: TDoubleArray;
-  M, K, N, T: Integer); { No usa T }
-procedure SeqStrassenNativeDelphi(var A, B, C: TDoubleArray;
+procedure SeqStrassenNativeDelphi(var A, B, C: TMatrix;
   M, K, N, T: Integer); { No usa T }
 
   {System.Threading}
-procedure ParGustavsonSystemThreading(var A, B, C: TDoubleArray;
-  M, K, N, T: Integer); { No permite usar T }
-procedure ParStrassenSystemThreading(var A, B, C: TDoubleArray;
-  M, K, N, T: Integer);
-
-  {OmniThreadLibrary}
-procedure ParGustavsonOmniThreadLibrary(var A, B, C: TDoubleArray;
+procedure ParStrassenSystemThreading(var A, B, C: TMatrix;
   M, K, N, T: Integer);
 
   { OpenMPMatrix }
-procedure SeqGustavsonOpenMPMatrix(var A, B, C: TDoubleArray;
+procedure SeqStrassenOpenMPMatrix(var A, B, C: TMatrix;
   M, K, N, T: Integer); { No usa T }
-procedure ParGustavsonOpenMPMatrix(var A, B, C: TDoubleArray;
-  M, K, N, T: Integer);
-procedure SeqStrassenOpenMPMatrix(var A, B, C: TDoubleArray;
-  M, K, N, T: Integer); { No usa T }
-procedure ParStrassenOpenMPMatrix(var A, B, C: TDoubleArray;
+procedure ParStrassenOpenMPMatrix(var A, B, C: TMatrix;
   M, K, N, T: Integer);
 
 const
-  AvailableImpl: array [0 .. 8] of TMatrixMulImplementation =
-    ((Name: '[Native Delphi]     Gustavson (Sequential)';
-    Proc: SeqGustavsonNativeDelphi),
-    (Name: '[NativeDelphi]      Strassen  (Sequential)';
-    Proc: SeqStrassenNativeDelphi),
-    (Name: '[System.Threading]  Gustavson (Parallel)';
-    Proc: ParGustavsonSystemThreading),
-    (Name: '[SystemThreading] Strassen  (Parallel)';
-    Proc: ParStrassenSystemThreading),
-    (Name: '[OmniThreadLibrary] Gustavson (Parallel)';
-    Proc: ParGustavsonOmniThreadLibrary),
-    (Name: '[OpenMPMatrix]      Gustavson (Sequential)';
-    Proc: SeqGustavsonOpenMPMatrix),
-    (Name: '[OpenMPMatrix]      Gustavson (Parallel)';
-    Proc: ParGustavsonOpenMPMatrix),
-    (Name: '[OpenMPMatrix]      Strassen  (Sequential)';
-    Proc: SeqStrassenOpenMPMatrix),
-    (Name: '[OpenMPMatrix]      Strassen  (Parallel)';
-    Proc: ParStrassenOpenMPMatrix));
+  THRESHOLD : Integer = 64;
 
 implementation
 
   {Native Delphi}
-procedure SeqGustavsonNativeDelphi(var A, B, C: TDoubleArray;
-  M, K, N, T: Integer);
-var
-  i, j, p: Integer;
-  aip: Double;
-begin
-
-  for i := 0 to M - 1 do
-  begin
-    for p := 0 to K - 1 do
-    begin
-      aip := A[i * K + p];
-      for j := 0 to N - 1 do
-      begin
-        C[i * N + j] := C[i * N + j] + aip * B[p * N + j];
-      end;
-    end;
-  end;
-end;
-
-procedure SeqStrassenNativeDelphi(var A, B, C: TDoubleArray;
+procedure SeqStrassenNativeDelphi(var A, B, C: TMatrix;
   M, K, N, T: Integer); { No usa T }
 var
   M2, K2, N2: Integer;
-  A11, A12, A21, A22: TDoubleArray;
-  B11, B12, B21, B22: TDoubleArray;
-  M1, M2Arr, M3, M4, M5, M6, M7: TDoubleArray;
-  A11_plus_A22, B11_plus_B22: TDoubleArray;
-  C11, C12, C21, C22: TDoubleArray;
+  A11, A12, A21, A22: TMatrix;
+  B11, B12, B21, B22: TMatrix;
+  M1, M2Arr, M3, M4, M5, M6, M7: TMatrix;
+  A11_plus_A22, B11_plus_B22: TMatrix;
+  C11, C12, C21, C22: TMatrix;
   i, j: Integer;
 begin
   // Base case: use Gustavson algorithm when dimensions are small
@@ -239,69 +180,14 @@ begin
       C[(M2 + i)*N + N2 + j] := C22[i*(N - N2) + j];
 end;
 
-
-  {OmniThreadLibrary}
-procedure ParGustavsonOmniThreadLibrary(var A, B, C: TDoubleArray;
-  M, K, N, T: Integer);
-var
-  A_cp, B_cp, C_cp: TDoubleArray;
-begin
-  A_cp := A;
-  B_cp := B;
-  C_cp := C;
-
-  Parallel.For(0, M - 1).NumTasks(T).Execute(
-    procedure(i: Integer)
-    var
-      j, p: Integer;
-      aip: Double;
-    begin
-      for p := 0 to K - 1 do
-      begin
-        aip := A_cp[i * K + p];
-        for j := 0 to N - 1 do
-        begin
-          C_cp[i * N + j] := C_cp[i * N + j] + aip * B_cp[p * N + j];
-        end;
-      end;
-    end);
-end;
-
-  {System.Threading}
-procedure ParGustavsonSystemThreading(var A, B, C: TDoubleArray;
-M, K, N, T: Integer);
-var
-  A_cp, B_cp, C_cp: TDoubleArray;
-begin
-  A_cp := A;
-  B_cp := B;
-  C_cp := C;
-
-  TParallel.For(0, M - 1,
-    procedure(i: Integer)
-    var
-      j, p: Integer;
-      aip: Double;
-    begin
-      for p := 0 to K - 1 do
-      begin
-        aip := A_cp[i * K + p];
-        for j := 0 to N - 1 do
-        begin
-          C_cp[i * N + j] := C_cp[i * N + j] + aip * B_cp[p * N + j];
-        end;
-      end;
-    end);
-end;
-
-procedure ParStrassenSystemThreading(var A, B, C: TDoubleArray;
+procedure ParStrassenSystemThreading(var A, B, C: TMatrix;
   M, K, N, T: Integer);
 var
   M2, K2, N2: Integer;
-  A11, A12, A21, A22: TDoubleArray;
-  B11, B12, B21, B22: TDoubleArray;
-  M1, M2Arr, M3, M4, M5, M6, M7: TDoubleArray;
-  C11, C12, C21, C22: TDoubleArray;
+  A11, A12, A21, A22: TMatrix;
+  B11, B12, B21, B22: TMatrix;
+  M1, M2Arr, M3, M4, M5, M6, M7: TMatrix;
+  C11, C12, C21, C22: TMatrix;
   i, j: Integer;
   Task : ITask;
   TaskList : TList<ITask>;
@@ -378,7 +264,7 @@ begin
   try
     // M1 = (A11 + A22) * (B11 + B22)
     TaskList.Add(TTask.Run(procedure
-      var A11_plus_A22, B11_plus_B22: TDoubleArray;
+      var A11_plus_A22, B11_plus_B22: TMatrix;
       begin
         SetLength(A11_plus_A22, m2 * k2);
         SetLength(B11_plus_B22, k2 * n2);
@@ -391,7 +277,7 @@ begin
 
     // M2 = (A21 + A22) * B11
     TaskList.Add(TTask.Run(procedure
-      var A21_plus_A22: TDoubleArray;
+      var A21_plus_A22: TMatrix;
       begin
         SetLength(A21_plus_A22, (m - m2) * k2);
         AddMatrices(A21, A22, A21_plus_A22, m - m2, k2);
@@ -401,7 +287,7 @@ begin
 
     // M3 = A11 * (B12 - B22)
     TaskList.Add(TTask.Run(procedure
-      var B12_minus_B22: TDoubleArray;
+      var B12_minus_B22: TMatrix;
       begin
         SetLength(B12_minus_B22, k2 * (n - n2));
         SubtractMatrices(B12, B22, B12_minus_B22, k2, n - n2);
@@ -411,7 +297,7 @@ begin
 
     // M4 = A22 * (B21 - B11)
     TaskList.Add(TTask.Run(procedure
-      var B21_minus_B11: TDoubleArray;
+      var B21_minus_B11: TMatrix;
       begin
         SetLength(B21_minus_B11, (k - k2) * n2);
         SubtractMatrices(B21, B11, B21_minus_B11, k - k2, n2);
@@ -421,7 +307,7 @@ begin
 
     // M5 = (A11 + A12) * B22
     TaskList.Add(TTask.Run(procedure
-      var A11_plus_A12: TDoubleArray;
+      var A11_plus_A12: TMatrix;
       begin
         SetLength(A11_plus_A12, m2 * (k - k2));
         AddMatrices(A11, A12, A11_plus_A12, m2, k - k2);
@@ -431,7 +317,7 @@ begin
 
     // M6 = (A21 - A11) * (B11 + B12)
     TaskList.Add(TTask.Run(procedure
-      var A21_minus_A11, B11_plus_B12: TDoubleArray;
+      var A21_minus_A11, B11_plus_B12: TMatrix;
       begin
         SetLength(A21_minus_A11, (m - m2) * k2);
         SetLength(B11_plus_B12, k2 * (n - n2));
@@ -444,7 +330,7 @@ begin
 
     // M7 = (A12 - A22) * (B21 + B22)
     TaskList.Add(TTask.Run(procedure
-      var A12_minus_A22, B21_plus_B22: TDoubleArray;
+      var A12_minus_A22, B21_plus_B22: TMatrix;
       begin
         SetLength(A12_minus_A22, m2 * (k - k2));
         SetLength(B21_plus_B22, (k - k2) * n2);
@@ -497,29 +383,17 @@ begin
       C[(M2 + i)*N + N2 + j] := C22[i*(N - N2) + j];
 end;
 
-  {OpenMPMatrix}
-procedure SeqGustavsonOpenMPMatrix(var A, B, C: TDoubleArray;
-M, K, N, T: Integer);
-begin
-  MMSeqGustavson(@A[0], @B[0], @C[0], M, K, N);
-end;
-
-procedure ParGustavsonOpenMPMatrix(var A, B, C: TDoubleArray;
-M, K, N, T: Integer);
-begin
-  MMParGustavson(@A[0], @B[0], @C[0], M, K, N, T);
-end;
-
-procedure SeqStrassenOpenMPMatrix(var A, B, C: TDoubleArray;
+procedure SeqStrassenOpenMPMatrix(var A, B, C: TMatrix;
 M, K, N, T: Integer);
 begin
   MMSeqStrassen(@A[0], @B[0], @C[0], M, K, N);
 end;
 
-procedure ParStrassenOpenMPMatrix(var A, B, C: TDoubleArray;
+procedure ParStrassenOpenMPMatrix(var A, B, C: TMatrix;
 M, K, N, T: Integer);
 begin
   MMParStrassen(@A[0], @B[0], @C[0], M, K, N, T);
 end;
 
 end.
+

@@ -1,4 +1,4 @@
-unit Benchmark;
+ï»¿unit Benchmark;
 
 interface
 
@@ -7,12 +7,11 @@ uses
   Math,
   Diagnostics,
   MatrixUtils,
-  MatrixMulImplementations,
-  OpenMPMatrix;
+  MMImplementations;
 
 type
   TResult = record
-    Name: String;
+    Name: string;
     TotalTime: Double;
     AvgTime: Double;
     MinTime: Double;
@@ -22,15 +21,15 @@ type
   TBenchmark = class(TObject)
 
   protected
-    A, B, C: TDoubleArray;
+    A, B, C: TMatrix;
     M, K, N: Integer;
     T, S: Integer;
-    Implementations: TArray<TMatrixMulImplementation>;
+    Implementations: TArray<TMMImplementation>;
 
   public
     Results: array of TResult;
     constructor Create(const M, K, N, T, S: Integer;
-      Implementations: array of TMatrixMulImplementation);
+      Implementations: array of TMMImplementation);
     destructor Destroy; override;
     Procedure RunBenchmark;
 
@@ -48,7 +47,7 @@ implementation
 
 // Public
 constructor TBenchmark.Create(const M, K, N, T, S: Integer;
-  Implementations: array of TMatrixMulImplementation);
+  Implementations: array of TMMImplementation);
 var
   I: Integer;
 begin
@@ -102,7 +101,7 @@ begin
       begin
         CheckOK := False;
         FreeMatrices;
-        Break; // Si falla la comprobación, salimos del bucle de iteraciones
+        Break; // Si falla la comprobaciï¿½n, salimos del bucle de iteraciones
       end;
 
       if ElapsedS < MinElapsedS then
