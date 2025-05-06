@@ -196,8 +196,6 @@ object Form1: TForm1
       ActivePage = TTabSheet1
       Align = alClient
       TabOrder = 0
-      ExplicitLeft = 3
-      ExplicitWidth = 791
       object TTabSheet1: TTabSheet
         Caption = 'Data'
         object StringGrid1: TStringGrid
@@ -211,7 +209,6 @@ object Form1: TForm1
           RowCount = 1
           FixedRows = 0
           TabOrder = 0
-          ExplicitWidth = 783
           ColWidths = (
             64)
         end

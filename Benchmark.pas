@@ -6,6 +6,7 @@ uses
   SysUtils, System.Threading,
   Math,
   Diagnostics,
+  MatrixUtils,
   MatrixMulImplementations,
   OpenMPMatrix;
 

@@ -10,7 +10,7 @@ uses
   Benchmark,
   MatrixMulImplementations, VclTee.TeeGDIPlus, VclTee.TeEngine, VclTee.TeeProcs,
   VclTee.Chart, VclTee.Series,
-  Vcl.Styles, Vcl.Themes;
+  Vcl.Styles, Vcl.Themes, VCLTee.TeCanvas;
 
 type
   TForm1 = class(TForm)
@@ -100,8 +100,6 @@ begin
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
-var
-  i: Integer;
 begin
   Button1.Enabled := False;
 
