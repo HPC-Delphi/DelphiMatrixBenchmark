@@ -1,4 +1,4 @@
-unit OpenMPMatrix;
+unit OMPDelphi;
 
 interface
 
@@ -6,7 +6,7 @@ uses
   System.SysUtils;
 
 const
-  DLLPATH = '../../openmp_matrix_delphi.dll';
+  DLLPATH = '../../omp_delphi.dll';
 
 procedure MMSeqGustavson(A, B, C: PDouble; M, K, N: Integer); cdecl; external DLLPATH name 'mm_seq_gustavson';
 procedure MMParGustavson(A, B, C: PDouble; M, K, N, T: Integer); cdecl; external DLLPATH name 'mm_par_gustavson';

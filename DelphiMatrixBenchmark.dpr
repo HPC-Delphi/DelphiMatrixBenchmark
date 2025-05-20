@@ -6,7 +6,7 @@ uses
   Benchmark in 'Benchmark.pas',
   Vcl.Themes,
   Vcl.Styles,
-  OpenMPMatrix,
+  OMPDelphi,
   MMGustavson in 'Algorithms\MMGustavson.pas',
   MMStrassen in 'Algorithms\MMStrassen.pas',
   MMImplementations in 'Algorithms\MMImplementations.pas',

@@ -4,7 +4,7 @@ interface
 
 uses
   System.Threading, OtlParallel,
-  MatrixUtils, OpenMPMatrix;
+  MatrixUtils, OMPDelphi;
 
   {NativeDelphi}
 procedure SeqGustavsonNativeDelphi(var A, B, C: TMatrix;
