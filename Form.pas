@@ -9,7 +9,7 @@ uses
   Vcl.Samples.Spin, Vcl.CheckLst, Vcl.ExtCtrls, Vcl.Tabs, Vcl.Grids,
   VclTee.TeeGDIPlus, VclTee.TeEngine, VclTee.TeeProcs,
   VclTee.Chart, VclTee.Series, Vcl.Styles, Vcl.Themes, VCLTee.TeCanvas,
-  Benchmark, MMImplementations;
+  BenchmarkConfig, BenchmarkResult, BenchmarkRunner, MatrixMultiplierFactory, ResultValidator, System.Generics.Collections, MatrixMultiplierIntf;
 
 type
   TForm1 = class(TForm)
@@ -50,8 +50,8 @@ type
     CheckListBox2: TCheckListBox;
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-    function GetParameters: Boolean;
-    procedure ShowResults;
+    function GetParameters(out Config: TBenchmarkConfig): Boolean;
+    procedure ShowResults(const Results: TArray<TBenchmarkResult>);
   private
     { Private declarations }
 
@@ -62,10 +62,6 @@ type
 
 var
   Form1: TForm1;
-  Benchmark: TBenchmark;
-  M, K, N: Integer;
-  T, S: Integer;
-  SelectedImpl: array of TMMImplementation;
 
 implementation
 
@@ -74,7 +70,8 @@ implementation
 { Initialize some components }
 procedure TForm1.FormCreate(Sender: TObject);
 var
-  Impl: Integer;
+  Names: TArray<string>;
+  i: Integer;
 begin
   Self.Caption := 'DelphiMatrixBenchmark';
 
@@ -89,107 +86,93 @@ begin
   { Parallel Implementations }
   CheckListBox2.Clear;
   CheckListBox2.Font.Name := 'Courier New';
-  for Impl := 0 to High(AvailableImpl) do
-  begin
-    CheckListBox2.Items.Add(AvailableImpl[Impl].Name);
-  end;
+  Names := TMatrixMultiplierFactory.GetAvailable;
+  for i := 0 to High(Names) do
+    CheckListBox2.Items.Add(Names[i]);
 
   { Results }
   TPageControl1.Visible := False;
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
+var
+  Config: TBenchmarkConfig;
+  MultList: TList<IMatrixMultiplier>;
+  Runner: TBenchmarkRunner;
+  Results: TArray<TBenchmarkResult>;
+  i: Integer;
 begin
   Button1.Enabled := False;
 
-  if not GetParameters then
+  if not GetParameters(Config) then
   begin
     Button1.Enabled := True;
     Exit;
   end;
 
-  Benchmark := TBenchmark.Create(M, K, N, T, S, SelectedImpl);
-  Benchmark.RunBenchmark;
+  MultList := TList<IMatrixMultiplier>.Create;
+  for i := 0 to CheckListBox2.Items.Count - 1 do
+    if CheckListBox2.Checked[i] then
+      MultList.Add(TMatrixMultiplierFactory.CreateByName(CheckListBox2.Items[i]));
 
-  ShowResults;
+  Runner := TBenchmarkRunner.Create(Config, MultList);
+  Results := Runner.Run;
 
-  Benchmark.Destroy;
+  ShowResults(Results);
+
+  Runner.Free;
 
   Button1.Enabled := True;
 end;
 
-function TForm1.GetParameters: Boolean;
-var
-  i, count: Integer;
+function TForm1.GetParameters(out Config: TBenchmarkConfig): Boolean;
 begin
-  // Parameters
-  M := SpinEdit1.Value;
-  K := SpinEdit4.Value;
-  N := SpinEdit5.Value;
-  T := SpinEdit2.Value;
-  S := SpinEdit3.Value;
+  Config.M := SpinEdit1.Value;
+  Config.K := SpinEdit4.Value;
+  Config.N := SpinEdit5.Value;
+  Config.T := SpinEdit2.Value;
+  Config.S := SpinEdit3.Value;
 
-  if M <= 0 then
+  if Config.M <= 0 then
   begin
     ShowMessage('Error: matrix size (M) must be a positive integer');
     Result := False;
     Exit;
   end;
 
-  if K <= 0 then
+  if Config.K <= 0 then
   begin
     ShowMessage('Error: matrix size (K) must be a positive integer');
     Result := False;
     Exit;
   end;
 
-  if N <= 0 then
+  if Config.N <= 0 then
   begin
     ShowMessage('Error: matrix size (N) must be a positive integer');
     Result := False;
     Exit;
   end;
 
-  if T <= 0 then
+  if Config.T <= 0 then
   begin
     ShowMessage('Error: threads (T) must be a positive integer');
     Result := False;
     Exit;
   end;
 
-  // Implementations
-  SetLength(SelectedImpl, CheckListBox2.Items.count);
-  count := 0;
-  for i := 0 to CheckListBox2.Items.count - 1 do
-    if CheckListBox2.Checked[i] then
-    begin
-      SelectedImpl[count] := AvailableImpl[i];
-      Inc(count);
-    end;
-
-  if count = 0 then
-  begin
-    ShowMessage('Error: no parallel implementation is selected. ' +
-      'Mark one at least');
-    Result := False;
-    Exit;
-  end;
-
-  SetLength(SelectedImpl, count);
-
   Result := True;
 end;
 
-procedure TForm1.ShowResults;
+procedure TForm1.ShowResults(const Results: TArray<TBenchmarkResult>);
 var
   i: Integer;
 const
-  Metrics: array [0 .. 3] of string = ('Total (s)', 'Avg (s)', 'Min (s)',
-    'Max (s)');
+  Metrics: array [0 .. 3] of string = ('Total (s)', 'Avg (s)', 'Min (s)', 'Max (s)');
 begin
   // Data
   StringGrid1.ColCount := 5;
-  StringGrid1.RowCount := 1 + Length(Benchmark.Results);
+  StringGrid1.RowCount := 1 + Length(Results);
 
   StringGrid1.Cells[0, 0] := 'Function';
   StringGrid1.Cells[1, 0] := 'Total (s)';
@@ -204,13 +187,13 @@ begin
   StringGrid1.ColWidths[3] := 100;
   StringGrid1.ColWidths[4] := 100;
 
-  for i := 0 to High(Benchmark.Results) do
+  for i := 0 to High(Results) do
   begin
-    StringGrid1.Cells[0, i + 1] := Benchmark.Results[i].Name;
-    StringGrid1.Cells[1, i + 1] := Benchmark.Results[i].TotalTime.ToString;
-    StringGrid1.Cells[2, i + 1] := Benchmark.Results[i].AvgTime.ToString;
-    StringGrid1.Cells[3, i + 1] := Benchmark.Results[i].MinTime.ToString;
-    StringGrid1.Cells[4, i + 1] := Benchmark.Results[i].MaxTime.ToString;
+    StringGrid1.Cells[0, i + 1] := Results[i].Name;
+    StringGrid1.Cells[1, i + 1] := Results[i].TotalTime.ToString;
+    StringGrid1.Cells[2, i + 1] := Results[i].AvgTime.ToString;
+    StringGrid1.Cells[3, i + 1] := Results[i].MinTime.ToString;
+    StringGrid1.Cells[4, i + 1] := Results[i].MaxTime.ToString;
   end;
 
   // Plot
@@ -220,18 +203,18 @@ begin
   Chart1.Legend.LegendStyle := lsSeries;
   Chart1.RemoveAllSeries;
 
-  for i := 0 to High(Benchmark.Results) do
+  for i := 0 to High(Results) do
   begin
     Series1 := TBarSeries.Create(Chart1);
     Chart1.AddSeries(Series1);
-    Series1.Title := Benchmark.Results[i].Name;
+    Series1.Title := Results[i].Name;
     Series1.MultiBar := mbSide;
     Series1.Marks.Visible := False;
 
-    Series1.Add(Benchmark.Results[i].TotalTime, Metrics[0]);
-    Series1.Add(Benchmark.Results[i].AvgTime, Metrics[1]);
-    Series1.Add(Benchmark.Results[i].MinTime, Metrics[2]);
-    Series1.Add(Benchmark.Results[i].MaxTime, Metrics[3]);
+    Series1.Add(Results[i].TotalTime, Metrics[0]);
+    Series1.Add(Results[i].AvgTime, Metrics[1]);
+    Series1.Add(Results[i].MinTime, Metrics[2]);
+    Series1.Add(Results[i].MaxTime, Metrics[3]);
   end;
 
   Chart1.LeftAxis.Title.Caption := 'Time (s)';

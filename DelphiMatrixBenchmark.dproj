@@ -127,13 +127,17 @@
         </DelphiCompile>
         <DCCReference Include="Form.pas">
             <Form>Form1</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="Benchmark.pas"/>
-        <DCCReference Include="Algorithms\MMGustavson.pas"/>
-        <DCCReference Include="Algorithms\MMStrassen.pas"/>
-        <DCCReference Include="Algorithms\MMImplementations.pas"/>
-        <DCCReference Include="MatrixUtils.pas"/>
+        <DCCReference Include="Algorithms\MatrixMultiplierFactory.pas"/>
+        <DCCReference Include="Algorithms\MatrixMultiplierIntf.pas"/>
+        <DCCReference Include="Libraries\avx_delphi\wrappers\AVX.pas"/>
+        <DCCReference Include="Libraries\omp_delphi\wrappers\OMP.pas"/>
+        <DCCReference Include="Libraries\mpi_delphi\wrappers\MPI.pas"/>
+        <DCCReference Include="Benchmark\BenchmarkConfig.pas"/>
+        <DCCReference Include="Benchmark\BenchmarkResult.pas"/>
+        <DCCReference Include="Benchmark\BenchmarkRunner.pas"/>
+        <DCCReference Include="Benchmark\ResultValidator.pas"/>
+        <DCCReference Include="Algorithms\MMGustavsonOOP.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
