@@ -4,11 +4,18 @@ authors:
   - family-names: "Galdo Galián"
     given-names: "Daniel"
     affiliation: "Universidad de Murcia"
-title: ""
-abstract: ""
+title: "DelphiMatrixBenchmark - HPC Matrix Multiplication Test Suite"
+abstract: "A comprehensive benchmarking suite developed in Delphi to evaluate, validate, and compare the performance of various high-performance matrix multiplication algorithms (Sequential, SIMD, OpenMP, and MPI)."
 type: software
 version: 1.0.0
 date-released: 2026-05-19
 license: MIT
 repository-code: "https://github.com/HPC-Delphi/DelphiMatrixBenchmark"
 keywords:
+  - "benchmarking"
+  - "matrix-multiplication"
+  - "delphi"
+  - "pascal"
+  - "hpc"
+  - "performance-testing"
+  - "reproducibility"
