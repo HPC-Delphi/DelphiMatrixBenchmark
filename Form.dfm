@@ -84,7 +84,7 @@ object Form1: TForm1
     object Label8: TLabel
       Left = 236
       Top = 98
-      Width = 6
+      Width = 5
       Height = 15
       Alignment = taCenter
       Caption = 'x'
@@ -92,7 +92,7 @@ object Form1: TForm1
     object Label9: TLabel
       Left = 15
       Top = 27
-      Width = 205
+      Width = 204
       Height = 45
       Caption = 
         'Matrix Multiplication is a fundamental '#13#10'linear algebra operatio' +
@@ -255,7 +255,6 @@ object Form1: TForm1
           BevelWidth = 2
           Color = clWhite
           TabOrder = 0
-          ExplicitWidth = 783
           DefaultCanvas = 'TGDIPlusCanvas'
           ColorPaletteIndex = 9
           object Series1: TBarSeries
@@ -281,14 +280,14 @@ object Form1: TForm1
     object Label2: TLabel
       Left = 15
       Top = 171
-      Width = 41
+      Width = 42
       Height = 15
       Caption = 'Threads'
     end
     object Label3: TLabel
       Left = 15
       Top = 27
-      Width = 132
+      Width = 131
       Height = 15
       Caption = 'Executions per algorithm'
     end

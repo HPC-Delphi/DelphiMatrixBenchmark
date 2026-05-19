@@ -1,4 +1,4 @@
-unit BenchmarkResult;
+unit Result;
 
 interface
 
@@ -9,7 +9,6 @@ type
     AvgTime: Double;
     MinTime: Double;
     MaxTime: Double;
-    IsValid: Boolean;
   end;
 
 implementation

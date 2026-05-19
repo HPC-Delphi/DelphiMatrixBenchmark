@@ -38,11 +38,9 @@
 #iOSDevice64/
 #Linux64/
 
-.json
-
 # Delphi compiler-generated binaries (safe to delete)
 *.exe
-# *.dll
+*.dll
 *.bpl
 *.bpi
 *.dcp
@@ -70,6 +68,7 @@
 *.projdata
 *.tvsconfig
 *.dsk
+*.dsv
 
 # Delphi history and backups
 __history/

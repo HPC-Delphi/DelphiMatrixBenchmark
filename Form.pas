@@ -8,18 +8,18 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.StdCtrls,
   Vcl.Samples.Spin, Vcl.CheckLst, Vcl.ExtCtrls, Vcl.Tabs, Vcl.Grids,
   VclTee.TeeGDIPlus, VclTee.TeEngine, VclTee.TeeProcs,
-  VclTee.Chart, VclTee.Series, Vcl.Styles, Vcl.Themes, VCLTee.TeCanvas,
-  BenchmarkConfig, BenchmarkResult, BenchmarkRunner, MatrixMultiplierFactory, ResultValidator, System.Generics.Collections, MatrixMultiplierIntf;
+  VclTee.Chart, VclTee.Series, Vcl.Styles, Vcl.Themes, VclTee.TeCanvas,
+  Config, Result, Validator, Runner,
+  Multiplier, Factory,
+  System.Generics.Collections,
+  MPI;
 
 type
   TForm1 = class(TForm)
-    { Parameters }
     GroupBox1: TGroupBox;
-    Label1: TLabel; // Samples
-    SpinEdit1: TSpinEdit; // Implementations
-    { Run Benchmark }
+    Label1: TLabel;
+    SpinEdit1: TSpinEdit;
     Button1: TButton;
-    { Results }
     GroupBox3: TGroupBox;
     TTabSheet1: TTabSheet;
     StringGrid1: TStringGrid;
@@ -52,12 +52,6 @@ type
     procedure Button1Click(Sender: TObject);
     function GetParameters(out Config: TBenchmarkConfig): Boolean;
     procedure ShowResults(const Results: TArray<TBenchmarkResult>);
-  private
-    { Private declarations }
-
-  public
-    { Public declarations }
-
   end;
 
 var
@@ -86,7 +80,7 @@ begin
   { Parallel Implementations }
   CheckListBox2.Clear;
   CheckListBox2.Font.Name := 'Courier New';
-  Names := TMatrixMultiplierFactory.GetAvailable;
+  Names := TFactory.GetAvailable;
   for i := 0 to High(Names) do
     CheckListBox2.Items.Add(Names[i]);
 
@@ -97,8 +91,8 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 var
   Config: TBenchmarkConfig;
-  MultList: TList<IMatrixMultiplier>;
-  Runner: TBenchmarkRunner;
+  MultList: TList<IMultiplier>;
+  Runner: TRunner;
   Results: TArray<TBenchmarkResult>;
   i: Integer;
 begin
@@ -110,12 +104,13 @@ begin
     Exit;
   end;
 
-  MultList := TList<IMatrixMultiplier>.Create;
+  MultList := TList<IMultiplier>.Create;
   for i := 0 to CheckListBox2.Items.Count - 1 do
     if CheckListBox2.Checked[i] then
-      MultList.Add(TMatrixMultiplierFactory.CreateByName(CheckListBox2.Items[i]));
+      MultList.Add(TFactory.CreateByName
+        (CheckListBox2.Items[i]));
 
-  Runner := TBenchmarkRunner.Create(Config, MultList);
+  Runner := TRunner.Create(Config, MultList);
   Results := Runner.Run;
 
   ShowResults(Results);
@@ -168,7 +163,8 @@ procedure TForm1.ShowResults(const Results: TArray<TBenchmarkResult>);
 var
   i: Integer;
 const
-  Metrics: array [0 .. 3] of string = ('Total (s)', 'Avg (s)', 'Min (s)', 'Max (s)');
+  Metrics: array [0 .. 3] of string = ('Total (s)', 'Avg (s)', 'Min (s)',
+    'Max (s)');
 begin
   // Data
   StringGrid1.ColCount := 5;

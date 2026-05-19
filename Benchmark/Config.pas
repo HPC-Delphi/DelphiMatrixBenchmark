@@ -1,4 +1,4 @@
-unit BenchmarkConfig;
+unit Config;
 
 interface
 
