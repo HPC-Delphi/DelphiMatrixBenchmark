@@ -4,21 +4,18 @@ uses
   Vcl.Forms,
   Vcl.Themes,
   Vcl.Styles,
-  Form in 'Form.pas' {Form1},
+  Form in 'Form.pas',
   Config in 'Benchmark\Config.pas',
   Result in 'Benchmark\Result.pas',
   Runner in 'Benchmark\Runner.pas',
   Validator in 'Benchmark\Validator.pas',
   Utils in 'Matrix\Utils.pas',
   Factory in 'Matrix\Factory.pas',
-  Multiplier in 'Matrix\Multiplier.pas',
-  MultImpls in 'Matrix\MultImpls.pas',
-  MPIMultImpls in 'Matrix\MPIMultImpls.pas',
-  MPI,
-  LUImpls in 'Matrix\LUImpls.pas';
+  Multiplier in 'Matrix\Multiplier.pas' {$R *.res},
+  MultImpls in 'Matrix\MultImpls.pas'
+{$IFDEF MPI} , MPI {$ENDIF};
 
 {$R *.res}
-
 {$IFDEF MPI}
 
 var
@@ -43,7 +40,7 @@ begin
     Application.Initialize;
     Application.MainFormOnTaskbar := True;
     Application.CreateForm(TForm1, Form1);
-  Application.Run;
+    Application.Run;
 {$IFDEF MPI}
     StrLen := -1;
     MPI_Bcast(@StrLen, 1, MPI_Int, 0);

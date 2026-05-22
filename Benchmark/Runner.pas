@@ -5,8 +5,10 @@ interface
 uses
   SysUtils, System.Generics.Collections, Math,
   Config, Result, Validator,
-  Multiplier, Utils,
-  MPI;
+  Multiplier, Utils
+{$IFDEF MPI}
+    , MPI
+{$ENDIF};
 
 type
   TRunner = class
@@ -68,7 +70,7 @@ begin
     MinElapsed := MaxDouble;
     MaxElapsed := -MaxDouble;
     SumElapsed := 0.0;
-    isValid := True;
+    IsValid := True;
     for s := 0 to FConfig.s - 1 do
     begin
       // Allocate and initialize matrices
@@ -76,7 +78,8 @@ begin
       SetLength(B, FConfig.K * FConfig.N);
       SetLength(C, FConfig.M * FConfig.N);
 
-      var iter := i * FConfig.S + s;
+      var
+      iter := i * FConfig.s + s;
 {$IFDEF LU$}
       InitMatrix(A, FConfig.M * FConfig.K);
 {$ELSE$}
@@ -85,8 +88,8 @@ begin
       InitMatrixZero(C, FConfig.M * FConfig.N);
 {$ENDIF$}
 
-      //for var idx := 0 to High(C) do
-        //C[idx] := 0.0;
+      // for var idx := 0 to High(C) do
+      // C[idx] := 0.0;
 
       // Compute
 {$IFDEF MPI}
@@ -102,10 +105,13 @@ begin
 
       FreeMem(Buffer);
 {$ENDIF}
-      Elapsed := FMultipliers[i].Multiply(A, B, C, FConfig.M, FConfig.K, FConfig.N, FConfig.T);
+      Elapsed := FMultipliers[i].Multiply(A, B, C, FConfig.M, FConfig.K,
+        FConfig.N, FConfig.T);
       SumElapsed := SumElapsed + Elapsed;
-      if Elapsed < MinElapsed then MinElapsed := Elapsed;
-      if Elapsed > MaxElapsed then MaxElapsed := Elapsed;
+      if Elapsed < MinElapsed then
+        MinElapsed := Elapsed;
+      if Elapsed > MaxElapsed then
+        MaxElapsed := Elapsed;
 
       // Free matrices
       SetLength(A, 0);

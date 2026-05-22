@@ -3,15 +3,20 @@ unit MultImpls;
 interface
 
 uses
-  SysUtils, Diagnostics, Math,
+  SysUtils, Diagnostics, Math, Utils, Multiplier,
   MKL, XALGLIB, LinAlg, FMAMatrixMultOperationsx64,
   OffC,
   System.Threading, OTLParallel,
-  FMAMatrixMultTransposedOperationsx64, VectorSIMD, vecLib, VDstd, VDmath,
-  MPI,
-  Multiplier, Utils;
+  FMAMatrixMultTransposedOperationsx64, VectorSIMD, vecLib, VDstd, VDmath
+{$IFDEF MPI}
+    , MPI
+{$ENDIF};
 
 type
+
+  // XALGLIB declares a different TMatrix type
+  TMatrix = Utils.TMatrix;
+
   // Base
   TBase = class(TInterfacedObject, IMultiplier)
   public
@@ -70,7 +75,7 @@ type
   end;
 
   // Par+Vec
-  // Se elige PPL porque obtiene mejor rendiemitno que OTL
+  // Se elige PPL porque obtiene mejor rendiemiento que OTL
   TPPLIntelSIMD = class(TInterfacedObject, IMultiplier)
   public
     function GetName: string;
@@ -107,6 +112,36 @@ type
     function GetName: string;
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
   end;
+
+{$IFDEF MPI}
+
+  // MPI+Base
+  TMPIBase = class(TInterfacedObject, IMultiplier)
+  public
+    function GetName: string;
+    function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
+  end;
+
+  // MPI+Par+Vec
+  TMPIPPLIntelSIMD = class(TInterfacedObject, IMultiplier)
+  public
+    function GetName: string;
+    function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
+  end;
+
+  TMPIOffCOMPAVX2 = class(TInterfacedObject, IMultiplier)
+  public
+    function GetName: string;
+    function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
+  end;
+
+  // MPI+MKL
+  TMPIOffCMKL = class(TInterfacedObject, IMultiplier)
+  public
+    function GetName: string;
+    function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
+  end;
+{$ENDIF}
 
 implementation
 
@@ -308,7 +343,7 @@ begin
 
   SetLength(B_t, 0);
   V_free(ArrSum);
-  V_Free(TmpMul);
+  V_free(TmpMul);
 end;
 
 function TIntelSIMD.GetName: string;
@@ -442,17 +477,17 @@ begin
       for i := iStart to iEnd do
       begin
         for j := 0 to N - 1 do
-          begin
-            FillChar(ArrSum[0], K * SizeOf(Double), 0);
+        begin
+          FillChar(ArrSum[0], K * SizeOf(Double), 0);
 
-            // Vectorized compute
-            VectorFMA(@A_cp[i * K], @B_t[j * K], @ArrSum[0], K);
+          // Vectorized compute
+          VectorFMA(@A_cp[i * K], @B_t[j * K], @ArrSum[0], K);
 
-            // Horizontal reduction
-            VectorReduce(@ArrSum[0], @sum, K);
+          // Horizontal reduction
+          VectorReduce(@ArrSum[0], @sum, K);
 
-            C_cp[i * N + j] := sum
-          end;
+          C_cp[i * N + j] := sum
+        end;
       end;
       SetLength(ArrSum, 0);
     end, Pool);
@@ -490,7 +525,7 @@ var
   A_cp, B_cp, C_cp: XALGLIB.TMatrix;
   Stopwatch: TStopWatch;
 begin
-  xalglib.SetGlobalThreading(xalglib.AlglibParallel);
+  XALGLIB.SetGlobalThreading(XALGLIB.AlglibParallel);
 
   // Transform
   SetLength(A_cp, M, K);
@@ -528,7 +563,7 @@ begin
 end;
 
 function TLinearAlgebra.Multiply(var A, B, C: TMatrix;
-  M, K, N, T: Integer): Double;
+M, K, N, T: Integer): Double;
 var
   Stopwatch: TStopWatch;
 begin
@@ -557,8 +592,8 @@ begin
   lineWidth2 := N * SizeOf(Double);
 
   // Compute
-  FMAMatrixMultUnAligned(@C[0], NativeInt(destLineWidth), @A[0],
-    @B[0], K, N, M, K, lineWidth1, lineWidth2);
+  FMAMatrixMultUnAligned(@C[0], NativeInt(destLineWidth), @A[0], @B[0], K, N, M,
+    K, lineWidth1, lineWidth2);
   Stopwatch.Stop;
   Result := Stopwatch.ElapsedMilliseconds / 1000.0;
   SetLength(B, 0);
@@ -582,5 +617,259 @@ begin
   Result := Stopwatch.ElapsedMilliseconds / 1000.0;
 end;
 
+{$IFDEF MPI}
+
+// MPI+Base
+function TMPIBase.GetName: string;
+begin
+  Result := 'MPI+Base';
+end;
+
+function TMPIBase.Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
+var
+  ProcessCount, RowsPerProc, Rank: Integer;
+  SubA, SubC: TMatrix;
+  Stopwatch: TStopWatch;
+begin
+  Result := 0.0;
+
+  MPI_Barrier;
+  MPI_Comm_size(@ProcessCount);
+  MPI_Comm_rank(@Rank);
+  MPI_Barrier;
+
+  if Rank = 0 then
+  begin
+    // Compute
+    Stopwatch := TStopWatch.StartNew;
+  end;
+
+  // Broadcasts M, N, K from process 0 to all processes
+  MPI_Bcast(@M, 1, MPI_INT, 0);
+  MPI_Bcast(@N, 1, MPI_INT, 0);
+  MPI_Bcast(@K, 1, MPI_INT, 0);
+  MPI_Bcast(@T, 1, MPI_INT, 0);
+
+  RowsPerProc := M div ProcessCount;
+  SetLength(SubA, RowsPerProc * K);
+  if Rank <> 0 then
+    SetLength(B, K * N);
+  SetLength(SubC, RowsPerProc * N);
+
+  InitMatrixZero(SubC, RowsPerProc * N);
+
+  // Distributes rows of matrix A from process 0 to all processes
+  MPI_Scatter(A, RowsPerProc * K, MPI_DOUBLE, SubA, RowsPerProc * K,
+    MPI_DOUBLE, 0);
+
+  // Broadcasts matrix B from process 0 to all processes
+  MPI_Bcast(B, K * N, MPI_DOUBLE, 0);
+
+  TBase.Create.Multiply(SubA, B, SubC, RowsPerProc, K, N, T);
+
+  // Gathers rows of matrix C from processes
+  MPI_Gather(SubC, RowsPerProc * N, MPI_DOUBLE, C, RowsPerProc * N,
+    MPI_DOUBLE, 0);
+
+  SetLength(SubA, 0);
+  SetLength(SubC, 0);
+
+  MPI_Barrier;
+
+  if Rank = 0 then
+  begin
+    Stopwatch.Stop;
+    Result := Stopwatch.ElapsedMilliseconds / 1000.0;
+  end;
+end;
+
+// MPI-ParVec
+function TMPIPPLIntelSIMD.GetName: string;
+begin
+  Result := 'MPI+PPL+IntelSIMD';
+end;
+
+function TMPIPPLIntelSIMD.Multiply(var A, B, C: TMatrix;
+M, K, N, T: Integer): Double;
+var
+  ProcessCount, RowsPerProc, Rank: Integer;
+  SubA, SubC: TMatrix;
+  Stopwatch: TStopWatch;
+begin
+  MPI_Barrier;
+
+  MPI_Comm_size(@ProcessCount);
+  MPI_Comm_rank(@Rank);
+
+  if Rank = 0 then
+  begin
+    // Compute
+    Stopwatch := TStopWatch.StartNew;
+  end;
+
+  { Broadcasts M, N, K from process 0 to all processes }
+  MPI_Bcast(@M, 1, MPI_INT, 0);
+  MPI_Bcast(@N, 1, MPI_INT, 0);
+  MPI_Bcast(@K, 1, MPI_INT, 0);
+  MPI_Bcast(@T, 1, MPI_INT, 0);
+
+  RowsPerProc := M div ProcessCount;
+  SetLength(SubA, RowsPerProc * K);
+  if Rank <> 0 then
+    SetLength(B, K * N);
+  SetLength(SubC, RowsPerProc * N);
+
+  InitMatrixZero(SubC, RowsPerProc * N);
+
+  { Distributes rows of matrix A from process 0 to all processes }
+  MPI_Scatter(A, RowsPerProc * K, MPI_DOUBLE, SubA, RowsPerProc * K,
+    MPI_DOUBLE, 0);
+
+  { Broadcasts matrix B from process 0 to all processes }
+  MPI_Bcast(B, K * N, MPI_DOUBLE, 0);
+
+  TPPLIntelSIMD.Create.Multiply(SubA, B, SubC, RowsPerProc, K, N, T);
+
+  { Gathers rows of matrix C from processes }
+  MPI_Gather(SubC, RowsPerProc * N, MPI_DOUBLE, C, RowsPerProc * N,
+    MPI_DOUBLE, 0);
+
+  SetLength(SubA, 0);
+  SetLength(SubC, 0);
+
+  Result := 0.0;
+  if Rank = 0 then
+  begin
+    Stopwatch.Stop;
+    Result := Stopwatch.ElapsedMilliseconds / 1000.0;
+  end;
+end;
+
+function TMPIOffCOMPAVX2.GetName: string;
+begin
+  Result := 'MPI+OffC-OMP+AVX2';
+end;
+
+function TMPIOffCOMPAVX2.Multiply(var A, B, C: TMatrix;
+M, K, N, T: Integer): Double;
+var
+  ProcessCount, RowsPerProc, Rank: Integer;
+  SubA, SubC: TMatrix;
+  Stopwatch: TStopWatch;
+begin
+  MPI_Barrier;
+
+  MPI_Comm_size(@ProcessCount);
+  MPI_Comm_rank(@Rank);
+
+  if Rank = 0 then
+  begin
+    // Compute
+    Stopwatch := TStopWatch.StartNew;
+  end;
+
+  { Broadcasts M, N, K from process 0 to all processes }
+  MPI_Bcast(@M, 1, MPI_INT, 0);
+  MPI_Bcast(@N, 1, MPI_INT, 0);
+  MPI_Bcast(@K, 1, MPI_INT, 0);
+  MPI_Bcast(@T, 1, MPI_INT, 0);
+
+  RowsPerProc := M div ProcessCount;
+  SetLength(SubA, RowsPerProc * K);
+  if Rank <> 0 then
+    SetLength(B, K * N);
+  SetLength(SubC, RowsPerProc * N);
+
+  InitMatrixZero(SubC, RowsPerProc * N);
+
+  { Distributes rows of matrix A from process 0 to all processes }
+  MPI_Scatter(A, RowsPerProc * K, MPI_DOUBLE, SubA, RowsPerProc * K,
+    MPI_DOUBLE, 0);
+
+  { Broadcasts matrix B from process 0 to all processes }
+  MPI_Bcast(B, K * N, MPI_DOUBLE, 0);
+
+  TOffCOMPAVX2.Create.Multiply(SubA, B, SubC, RowsPerProc, K, N, T);
+
+  { Gathers rows of matrix C from processes }
+  MPI_Gather(SubC, RowsPerProc * N, MPI_DOUBLE, C, RowsPerProc * N,
+    MPI_DOUBLE, 0);
+
+  SetLength(SubA, 0);
+  SetLength(SubC, 0);
+
+  Result := 0.0;
+  if Rank = 0 then
+  begin
+    Stopwatch.Stop;
+    Result := Stopwatch.ElapsedMilliseconds / 1000.0;
+  end;
+end;
+
+// Linear Algebra
+function TMPIOffCMKL.GetName: string;
+begin
+  Result := 'MPI+OffC-MKL';
+end;
+
+function TMPIOffCMKL.Multiply(var A, B, C: TMatrix;
+M, K, N, T: Integer): Double;
+var
+  ProcessCount, RowsPerProc, Rank: Integer;
+  SubA, SubC: TMatrix;
+  Stopwatch: TStopWatch;
+begin
+  Result := 0.0;
+
+  MPI_Barrier;
+  MPI_Comm_size(@ProcessCount);
+  MPI_Comm_rank(@Rank);
+  MPI_Barrier;
+
+  if Rank = 0 then
+  begin
+    // Compute
+    Stopwatch := TStopWatch.StartNew;
+  end;
+
+  // Broadcasts M, N, K from process 0 to all processes
+  MPI_Bcast(@M, 1, MPI_INT, 0);
+  MPI_Bcast(@N, 1, MPI_INT, 0);
+  MPI_Bcast(@K, 1, MPI_INT, 0);
+  MPI_Bcast(@T, 1, MPI_INT, 0);
+
+  RowsPerProc := M div ProcessCount;
+  SetLength(SubA, RowsPerProc * K);
+  if Rank <> 0 then
+    SetLength(B, K * N);
+  SetLength(SubC, RowsPerProc * N);
+
+  InitMatrixZero(SubC, RowsPerProc * N);
+
+  // Distributes rows of matrix A from process 0 to all processes
+  MPI_Scatter(A, RowsPerProc * K, MPI_DOUBLE, SubA, RowsPerProc * K,
+    MPI_DOUBLE, 0);
+
+  // Broadcasts matrix B from process 0 to all processes
+  MPI_Bcast(B, K * N, MPI_DOUBLE, 0);
+
+  TOffCMKL.Create.Multiply(SubA, B, SubC, RowsPerProc, K, N, T);
+
+  // Gathers rows of matrix C from processes
+  MPI_Gather(SubC, RowsPerProc * N, MPI_DOUBLE, C, RowsPerProc * N,
+    MPI_DOUBLE, 0);
+
+  SetLength(SubA, 0);
+  SetLength(SubC, 0);
+
+  MPI_Barrier;
+
+  if Rank = 0 then
+  begin
+    Stopwatch.Stop;
+    Result := Stopwatch.ElapsedMilliseconds / 1000.0;
+  end;
+end;
+{$ENDIF}
 
 end.

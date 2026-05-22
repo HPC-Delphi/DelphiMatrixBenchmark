@@ -26,7 +26,7 @@ begin
   Randomize;
 
   for var i := 0 to Size - 1 do
-      M[i] := Random + 1; // Evitar 0 factorización LU
+    M[i] := Random + 1;
 end;
 
 procedure TransposeMatrix(var B: TMatrix; var B_t: TMatrix; K, N: Integer);
@@ -38,12 +38,12 @@ end;
 
 procedure PrintMatrix(var M: TMatrix; Rows, Columns: Integer);
 var
-  I, J: Integer;
+  i, j: Integer;
 begin
-  for I := 0 to Rows - 1 do
+  for i := 0 to Rows - 1 do
   begin
-    for J := 0 to Columns - 1 do
-      Write(Format('%.4f ', [M[I * Rows + J]]));
+    for j := 0 to Columns - 1 do
+      Write(Format('%.4f ', [M[i * Rows + j]]));
     Writeln;
   end;
   Writeln;

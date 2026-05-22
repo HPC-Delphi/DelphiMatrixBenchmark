@@ -8,7 +8,8 @@ uses
 type
   TValidator = class(TObject)
   public
-    function Validate(var C: TMatrix; const Iteration, M, N, K: Integer): Boolean;
+    function Validate(var C: TMatrix; const Iteration, M, N,
+      K: Integer): Boolean;
   end;
 
 const
@@ -16,7 +17,8 @@ const
 
 implementation
 
-Function TValidator.Validate(var C: TMatrix; const Iteration, M, N, K: Integer): Boolean;
+Function TValidator.Validate(var C: TMatrix;
+  const Iteration, M, N, K: Integer): Boolean;
 var
   I, j, p: Integer;
   ExpectedValue, ActualValue: Double;

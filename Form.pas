@@ -11,8 +11,7 @@ uses
   VclTee.Chart, VclTee.Series, Vcl.Styles, Vcl.Themes, VclTee.TeCanvas,
   Config, Result, Validator, Runner,
   Multiplier, Factory,
-  System.Generics.Collections,
-  MPI;
+  System.Generics.Collections;
 
 type
   TForm1 = class(TForm)
@@ -107,8 +106,7 @@ begin
   MultList := TList<IMultiplier>.Create;
   for i := 0 to CheckListBox2.Items.Count - 1 do
     if CheckListBox2.Checked[i] then
-      MultList.Add(TFactory.CreateByName
-        (CheckListBox2.Items[i]));
+      MultList.Add(TFactory.CreateByName(CheckListBox2.Items[i]));
 
   Runner := TRunner.Create(Config, MultList);
   Results := Runner.Run;

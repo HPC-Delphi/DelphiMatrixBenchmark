@@ -52,17 +52,6 @@
         <Cfg_3>true</Cfg_3>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Config)'=='LU' or '$(Cfg_1)'!=''">
-        <Cfg_1>true</Cfg_1>
-        <CfgParent>Base</CfgParent>
-        <Base>true</Base>
-    </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win64)'!=''">
-        <Cfg_1_Win64>true</Cfg_1_Win64>
-        <CfgParent>Cfg_1</CfgParent>
-        <Cfg_1>true</Cfg_1>
-        <Base>true</Base>
-    </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
@@ -78,8 +67,8 @@
         <SanitizedProjectName>DelphiMatrixBenchmark</SanitizedProjectName>
         <VerInfo_Locale>2057</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_UnitSearchPath>C:\Users\user\Software\DelphiHPC\libraries\third_party\alglib-delphi\wrapper;C:\Users\user\Software\DelphiHPC\libraries\third_party\linalg\Delphi12-Win64;C:\Users\user\Software\DelphiHPC\libraries\third_party\mrMath;C:\Users\user\Software\DelphiHPC\libraries\third_party\OptiVec_for_Delphi\win64\Lib8;C:\Users\user\Software\DelphiHPC\libraries\third_party\FastMath\FastMath;C:\Users\user\Software\DelphiHPC\libraries\custom\offc_delphi\interface\;C:\Users\user\Software\DelphiHPC\libraries\custom\vector_simd_delphi\interface\;C:\Users\user\Software\DelphiHPC\libraries\custom\mpi_delphi\interface\;C:\Users\user\Software\DelphiHPC\libraries\custom\mkl_delphi\interface;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <Custom_Styles>Obsidian|VCLSTYLE|$(BDSCOMMONDIR)\Styles\Obsidian.vsf;Glossy|VCLSTYLE|$(BDSCOMMONDIR)\Styles\Glossy.vsf</Custom_Styles>
+        <DCC_UnitSearchPath>C:\Users\user\Software\DelphiHPC\libraries\third_party\linalg\Delphi12-Win64;C:\Users\user\Software\DelphiHPC\libraries\third_party\mrMath;C:\Users\user\Software\DelphiHPC\libraries\third_party\OptiVec_for_Delphi\win64\Lib8;C:\Users\user\Software\DelphiHPC\libraries\third_party\alglib-delphi\wrapper;C:\Users\user\Software\DelphiHPC\libraries\third_party\FastMath\FastMath;C:\Users\user\Software\DelphiHPC\libraries\custom\offc_delphi\interface;C:\Users\user\Software\DelphiHPC\libraries\custom\vector_simd_delphi\interface;C:\Users\user\Software\DelphiHPC\libraries\custom\mkl_delphi\interface;C:\Program Files (x86)\Steema Software\Steema TeeChart Standard VCL FMX 2026.46\Delphi29\Delphi29.win64\Lib;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UsePackage>vclwinx;fmx;vclie;DbxCommonDriver;bindengine;IndyIPCommon;VCLRESTComponents;FireDACCommonODBC;FireDACCommonDriver;appanalytics;IndyProtocols;vclx;Skia.Package.RTL;IndyIPClient;dbxcds;vcledge;bindcompvclwinx;bindcompfmx;inetdb;FireDACSqliteDriver;DbxClientDriver;soapmidas;vclactnband;fmxFireDAC;dbexpress;DBXMySQLDriver;VclSmp;inet;vcltouch;fmxase;dbrtl;Skia.Package.FMX;fmxdae;FireDACMSAccDriver;CustomIPTransport;vcldsnap;DBXInterBaseDriver;OmniThreadLibraryRuntime;IndySystem;Skia.Package.VCL;vcldb;vclFireDAC;bindcomp;FireDACCommon;IndyCore;RESTBackendComponents;bindcompdbx;rtl;FireDACMySQLDriver;FireDACADSDriver;RESTComponents;DBXSqliteDriver;vcl;IndyIPServer;dsnapxml;dsnapcon;adortl;vclimg;FireDACPgDriver;FireDAC;inetdbxpress;xmlrtl;tethering;bindcompvcl;dsnap;CloudService;fmxobj;bindcompvclsmp;soaprtl;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>
@@ -116,25 +105,27 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_3)'!=''">
+        <DCC_Define>MPI;$(DCC_Define)</DCC_Define>
+        <DCC_UnitSearchPath>C:\Users\user\Software\DelphiHPC\libraries\custom\mpi_delphi\interface;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_3_Win64)'!=''">
-        <DCC_Define>MPI;$(DCC_Define)</DCC_Define>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_1)'!=''">
-        <DCC_Define>LU;$(DCC_Define)</DCC_Define>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_Define>MPI;$(DCC_Define)</DCC_Define>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="Form.pas">
-            <Form>Form1</Form>
+            <Form>,
+  Config in &apos;Benchmark\Config.pas&apos;,
+  Result in &apos;Benchmark\Result.pas&apos;,
+  Runner in &apos;Benchmark\Runner.pas&apos;,
+  Validator in &apos;Benchmark\Validator.pas&apos;,
+  Utils in &apos;Matrix\Utils.pas&apos;,
+  Factory in &apos;Matrix\Factory.pas&apos;,
+  Multiplier in &apos;Matrix\Multiplier.pas&apos; {$R *.res</Form>
         </DCCReference>
         <DCCReference Include="Benchmark\Config.pas"/>
         <DCCReference Include="Benchmark\Result.pas"/>
@@ -145,17 +136,11 @@
         <DCCReference Include="Matrix\Multiplier.pas">
             <Form>$R *.res</Form>
         </DCCReference>
-        <DCCReference Include="Matrix\MultImpls.pas"/>
-        <DCCReference Include="Matrix\MPIMultImpls.pas">
+        <DCCReference Include="Matrix\MultImpls.pas">
             <Form>$R *.res</Form>
         </DCCReference>
-        <DCCReference Include="Matrix\LUImpls.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
-        </BuildConfiguration>
-        <BuildConfiguration Include="LU">
-            <Key>Cfg_1</Key>
-            <CfgParent>Base</CfgParent>
         </BuildConfiguration>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

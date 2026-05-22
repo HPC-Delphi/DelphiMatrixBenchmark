@@ -3,20 +3,7 @@
 interface
 
 uses
-  System.Generics.Collections, Multiplier
-{$IFDEF RELEASE}
-  ,
-  MultImpls
-{$ENDIF}
-{$IFDEF MPI}
-  ,
-  MPIMultImpls
-{$ENDIF}
-{$IFDEF LU}
-  ,
-  LUImpls
-{$ENDIF}
-  ;
+  System.Generics.Collections, Multiplier, MultImpls;
 
 type
   TFactory = class
@@ -29,47 +16,23 @@ implementation
 
 class function TFactory.GetAvailable: TArray<string>;
 begin
-  Result := [
-{$IFDEF RELEASE}
-      'Base',
-      'OffC-Base',
-      'OptiVec-VectorLib',
-      'IntelSIMD',
-      'OffC-AVX2',
-      'ASM',
-      'PPL',
-      'OTL',
-      'OffC-OMP',
-      'PPL+IntelSIMD',
-      'OffC-OMP+AVX2',
-      'ALGLIB',
-      'LINALG',
-      'mrmath',
-      'OffC-MKL'
-{$ENDIF}
+  Result := ['Base', 'OffC-Base', 'OptiVec-VectorLib', 'IntelSIMD', 'OffC-AVX2',
+    'ASM', 'PPL', 'OTL', 'OffC-OMP', 'PPL+IntelSIMD', 'OffC-OMP+AVX2', 'ALGLIB',
+    'LINALG', 'mrmath', 'OffC-MKL'
 {$IFDEF MPI}
-      'MPI+Base',
-      'MPI+PPL+IntelSIMD',
-      'MPI+OffC-OMP+AVX2',
-      'MPI+OffC-MKL'
+    , 'MPI+Base', 'MPI+PPL+IntelSIMD', 'MPI+OffC-OMP+AVX2', 'MPI+OffC-MKL'
 {$ENDIF}
-{$IFDEF LU}
-      ,
-      'LU',
-      'MPI+LU'
-{$ENDIF}
-  ]
+    ]
 end;
 
 class function TFactory.CreateByName(const Name: string): IMultiplier;
 begin
-{$IFDEF RELEASE}
   // Base
   if Name = 'Base' then
     Result := TBase.Create
   else if Name = 'OffC-Base' then
     Result := TOffCBase.Create
-  // Vec
+    // Vec
   else if Name = 'OptiVec-VectorLib' then
     Result := TOptiVecVectorLib.Create
   else if Name = 'IntelSIMD' then
@@ -78,19 +41,19 @@ begin
     Result := TOffCAVX2.Create
   else if Name = 'ASM' then
     Result := TASM.Create
-  // Par
+    // Par
   else if Name = 'PPL' then
     Result := TPPL.Create
   else if Name = 'OTL' then
     Result := TOTL.Create
   else if Name = 'OffC-OMP' then
     Result := TOffCOMP.Create
-  // Par+Vec
+    // Par+Vec
   else if Name = 'PPL+IntelSIMD' then
     Result := TPPLIntelSIMD.Create
   else if Name = 'OffC-OMP+AVX2' then
     Result := TOffCOMPAVX2.Create
-  // Linear Algebra
+    // Linear Algebra
   else if Name = 'ALGLIB' then
     Result := TALGLIB.Create
   else if Name = 'LINALG' then
@@ -99,9 +62,8 @@ begin
     Result := Tmrmath.Create
   else if Name = 'OffC-MKL' then
     Result := TOffCMKL.Create
-{$ENDIF}
 {$IFDEF MPI}
-  if Name = 'MPI+Base' then
+  else if Name = 'MPI+Base' then
     Result := TMPIBase.Create
   else if Name = 'MPI+PPL+IntelSIMD' then
     Result := TMPIPPLIntelSIMD.Create
@@ -109,12 +71,6 @@ begin
     Result := TMPIOffCOMPAVX2.Create
   else if Name = 'MPI+OffC-MKL' then
     Result := TMPIOffCMKL.Create
-{$ENDIF}
-{$IFDEF LU}
-  else if Name = 'LU' then
-    Result := TLU.Create
-  else if Name = 'MPI+LU' then
-    Result := TMPILU.Create
 {$ENDIF}
   else
     Result := nil;

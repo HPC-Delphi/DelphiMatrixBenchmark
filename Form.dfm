@@ -216,55 +216,6 @@ object Form1: TForm1
       object TTabSheet2: TTabSheet
         Caption = 'Plot'
         ImageIndex = 1
-        object Chart1: TChart
-          Left = 0
-          Top = 0
-          Width = 775
-          Height = 267
-          BackWall.Pen.Visible = False
-          BottomWall.Brush.Gradient.EndColor = clSilver
-          BottomWall.Brush.Gradient.StartColor = clGray
-          BottomWall.Brush.Gradient.Visible = True
-          BottomWall.Pen.Color = clGray
-          BottomWall.Size = 4
-          Gradient.Direction = gdFromTopLeft
-          Gradient.EndColor = clWhite
-          Gradient.StartColor = clSilver
-          Gradient.Visible = True
-          LeftWall.Brush.Gradient.EndColor = clSilver
-          LeftWall.Brush.Gradient.StartColor = clGray
-          LeftWall.Brush.Gradient.Visible = True
-          LeftWall.Color = clWhite
-          LeftWall.Pen.Color = clGray
-          LeftWall.Size = 4
-          Legend.Symbol.Gradient.EndColor = 2413052
-          Title.Text.Strings = (
-            'TChart')
-          BottomAxis.Grid.Color = 14540253
-          BottomAxis.LabelsFormat.Font.Color = clGray
-          BottomAxis.LabelsFormat.Font.Height = -9
-          BottomAxis.LabelStyle = talText
-          Frame.Visible = False
-          LeftAxis.Grid.Color = 14540253
-          LeftAxis.LabelsFormat.Font.Color = clGray
-          LeftAxis.LabelsFormat.Font.Height = -9
-          LeftAxis.LabelStyle = talValue
-          View3D = False
-          Zoom.Animated = True
-          Align = alClient
-          BevelWidth = 2
-          Color = clWhite
-          TabOrder = 0
-          DefaultCanvas = 'TGDIPlusCanvas'
-          ColorPaletteIndex = 9
-          object Series1: TBarSeries
-            HoverElement = []
-            XValues.Name = 'X'
-            XValues.Order = loAscending
-            YValues.Name = 'Bar'
-            YValues.Order = loNone
-          end
-        end
       end
     end
   end
