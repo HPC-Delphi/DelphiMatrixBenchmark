@@ -70,10 +70,7 @@ DelphiMatrixBenchmark/
 │   ├── Factory.pas         # Name -> IMultiplier factory
 │   ├── Multiplier.pas      # IMultiplier interface
 │   ├── MultImpls.pas       # Concrete algorithm implementations
-│   ├── Utils.pas           # Matrix helpers
-│   ├── FastMath.pas        # Auxiliary/experimental units
-│   ├── DelphiStrassen.pas  # Auxiliary/experimental units
-│   └── LUImpls.pas         # Auxiliary/experimental units
+│   └── Utils.pas           # Matrix helpers
 │
 ├── Form.pas / Form.dfm     # GUI and interaction logic
 ├── DelphiMatrixBenchmark.dpr
@@ -294,7 +291,6 @@ The runner validates numerical correctness before accepting timing results.
 ## Notes and known constraints
 
 - MPI implementations assume `M` is divisible by process count in current scatter/gather strategy.
-- This repository includes auxiliary units (e.g., `LUImpls.pas`) not wired into the default algorithm list shown by the GUI factory.
 - Prefer `Win64` only for realistic HPC-size matrices.
 
 ---
