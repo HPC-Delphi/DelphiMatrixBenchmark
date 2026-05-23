@@ -1,94 +1,310 @@
-# DelphiMatrixBenchmark - HPC Matrix Multiplication Test Suite
+# DelphiMatrixBenchmark - HPC Matrix Multiplication Benchmark Client
 
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2011-blue)](https://www.microsoft.com/en-us/windows/windows-11)
-[![Delphi](https://img.shields.io/badge/RAD%20Studio-Delphi%2012.1-red)](https://www.embarcadero.com/products/delphi)
+[![RAD Studio](https://img.shields.io/badge/RAD%20Studio-Delphi%2012.1-red)](https://www.embarcadero.com/products/delphi)
+[![Build Configs](https://img.shields.io/badge/Configs-Release%20%7C%20MPI-purple)](#build-configurations)
 
-`DelphiMatrixBenchmark` is the core reproducibility and benchmarking suite for the HPC-Delphi academic project. It provides a robust framework to execute, validate, and measure the performance of multiple matrix multiplication implementations, orchestrating native Delphi routines alongside high-performance C libraries (SIMD, OpenMP, and MPI).
+`DelphiMatrixBenchmark` is the desktop client application used in the **HPC-Delphi** research project to run, validate, and compare matrix multiplication implementations across multiple execution models:
+
+- sequential baseline
+- shared-memory parallelism (PPL, OTL, OpenMP)
+- vectorized/SIMD kernels (Intel SIMD, AVX2)
+- optimized linear algebra backends (ALGLIB, LinAlg/CBLAS, mrMath, MKL)
+- distributed-memory MPI variants (MPI configuration)
+
+The application provides a GUI to select algorithms, set benchmark parameters, execute repeated runs, and visualize results in both tabular and chart form.
+
+---
 
 ## Features
 
-- **Algorithm Orchestration**: Centralizes the execution of diverse matrix multiplication strategies, including naive sequential, Strassen, SIMD (AVX/SSE2) vectorized, OpenMP multi-threaded, and MSMPI distributed approaches.
-- **Automated Validation**: Includes a dedicated validation engine (`Benchmark/Validator.pas`) to guarantee mathematical correctness across all implementations before measuring performance.
-- **Performance Metrics**: Accurately measures execution times and computational throughput to generate comparative performance datasets.
-- **Extensible Factory Architecture**: Utilizes a Factory pattern (`Matrix/Factory.pas`) to easily integrate new algorithms or third-party wrappers.
+- **Unified benchmark runner** for heterogeneous implementations under a common interface (`IMultiplier`).
+- **Automatic result validation** against a deterministic reference computation before accepting timings.
+- **Configurable workload**: matrix dimensions (`M`, `K`, `N`), worker threads (`T`), repetitions (`S`).
+- **Comparative visualization** in VCL UI (`TStringGrid` + TeeChart bar plots).
+- **Two build configurations** with explicit dependency boundaries:
+  - `Release`: local/shared-memory algorithms
+  - `MPI`: adds distributed algorithms and MPI runtime coordination
 
-## Explicit Requirements & Dependencies
+---
 
-To compile and execute this benchmark suite, your environment must strictly satisfy all dependencies listed below. They are divided into proprietary modules developed specifically for this research, and external third-party software.
+## Architecture Overview
 
-### 1. Development Environment
-- **IDE**: RAD Studio (Delphi 12.1 Community Edition or higher).
-- **Target OS**: Windows 11 (64-bit architecture is mandatory for large matrix memory allocation).
+```mermaid
+flowchart TD
+    UI[Form.pas<br/>VCL GUI] --> CFG[Benchmark/Config.pas<br/>M,K,N,T,S]
+    UI --> FAC[Matrix/Factory.pas<br/>Algorithm registry]
+    UI --> RUN[Benchmark/Runner.pas<br/>Execution loop]
 
-### 2. Internal HPC-Delphi Dependencies (Core Modules)
-These are the specialized C libraries developed as part of this suite. For each of these modules, you must compile their respective GitHub repositories to obtain the `.dll` binaries, and you must include their interface folders in Delphi's `Search Path`.
+    FAC --> IMPL[Matrix/MultImpls.pas<br/>IMultiplier implementations]
 
-| Library Module | HPC Purpose | Required Binary | Interface Wrapper (.pas) |
-| :--- | :--- | :--- | :--- |
-| **`offc_delphi`** | Core C matrix algorithms (Sequential, OpenMP, Strassen) | `offc_delphi.dll` | `OffC.pas` |
-| **`vector_simd_delphi`** | Hardware-accelerated Intel SIMD vector operations | `vector_simd_delphi.dll` | `VectorSIMD.pas` |
-| **`mpi_delphi`** | MSMPI bindings for distributed-memory computing | `mpi_delphi.dll` | `MPI.pas` |
+    RUN --> VAL[Benchmark/Validator.pas<br/>Correctness check]
+    RUN --> RES[Benchmark/Result.pas<br/>Total/Avg/Min/Max]
 
-### 3. External / Third-Party Dependencies
-This suite integrates external software to validate and compare performance against industry standards.
+    IMPL --> CORE1[Native Delphi<br/>Base/PPL/OTL]
+    IMPL --> CORE2[Custom HPC-Delphi DLLs<br/>OffC / VectorSIMD / MKL]
+    IMPL --> CORE3[Third-party libs<br/>ALGLIB / LinAlg / mrMath / OptiVec]
 
-- **Microsoft MPI (MSMPI)**: Required for the distributed algorithms.
-  - *Runtime*: MSMPI must be installed on the host operating system to execute the benchmark.
-  - *SDK*: (v10.1+) The headers and libraries are required during the C-side compilation of `mpi_delphi`.
-- **[Insert Other Third-Party Libraries Here]**: *e.g., Intel MKL, OpenBLAS, or any other proprietary math DLLs you are integrating. Specify their DLL names and wrapper requirements here once reviewed.*
+    subgraph MPI_Mode[Only in MPI configuration]
+      MPIMAIN[DelphiMatrixBenchmark.dpr<br/>MPI Init / rank orchestration]
+      MPILIB[mpi_delphi wrapper + MSMPI runtime]
+      MPIMAIN --> RUN
+      IMPL --> MPILIB
+    end
+```
 
-## Project Structure
+---
+
+## Repository Structure
 
 ```text
 DelphiMatrixBenchmark/
 │
-├── Benchmark/              # Core benchmarking logic
-│   ├── Config.pas          # Suite configuration and parameters
-│   ├── Result.pas          # Data structures for metrics
-│   ├── Runner.pas          # Execution controller
-│   └── Validator.pas       # Mathematical correctness checks
-├── Matrix/                 # Implementations and interfaces
-│   ├── Factory.pas         # Multiplier instantiation
-│   ├── DelphiStrassen.pas  # Native Strassen implementation
-│   ├── FastMath.pas        # Low-level mathematical routines
-│   └── ...                 # Additional algorithm units
-├── Form.pas / Form.dfm     # Graphical User Interface
-├── DelphiMatrixBenchmark.dpr # Main project file
-├── CITATION.cff            # Academic citation metadata
-└── README.md               # Project documentation
+├── Benchmark/
+│   ├── Config.pas          # Benchmark input parameters
+│   ├── Result.pas          # Benchmark output model
+│   ├── Runner.pas          # Execution orchestration
+│   └── Validator.pas       # Numerical correctness validation
+│
+├── Matrix/
+│   ├── Factory.pas         # Name -> IMultiplier factory
+│   ├── Multiplier.pas      # IMultiplier interface
+│   ├── MultImpls.pas       # Concrete algorithm implementations
+│   ├── Utils.pas           # Matrix helpers
+│   ├── FastMath.pas        # Auxiliary/experimental units
+│   ├── DelphiStrassen.pas  # Auxiliary/experimental units
+│   └── LUImpls.pas         # Auxiliary/experimental units
+│
+├── Form.pas / Form.dfm     # GUI and interaction logic
+├── DelphiMatrixBenchmark.dpr
+├── DelphiMatrixBenchmark.dproj
+├── CITATION.cff
+├── LICENSE
+└── README.md
 ```
 
-## Setup & Compilation Instructions
+---
 
-To guarantee a reproducible environment and avoid polluting the global Windows `PATH`, follow these strict configuration steps:
+## Requirements & Development Environment
 
-### Step 1: Interface Integration (Search Path)
-Open `DelphiMatrixBenchmark.dproj` in RAD Studio. Navigate to **Project > Options > Delphi Compiler > Search path**.
-You must add the absolute or relative paths pointing to the directories containing the `.pas` interfaces for ALL dependencies (both internal and third-party). 
-*Example: `..\offc_delphi\wrappers\`*
+The project is developed and validated in the following environment:
 
-### Step 2: Local DLL Deployment
-Do **not** install the external DLLs system-wide. 
-1. Compile the internal HPC-Delphi libraries from their source repositories.
-2. Gather all required third-party math DLLs.
-3. Copy all these `.dll` files directly into the compiler's output directory where the `DelphiMatrixBenchmark.exe` is generated. Depending on your build configuration, this is typically:
-   - `Win64\Debug\`
-   - `Win64\Release\`
+- **Operating System**: Windows 11 (64-bit)
+- **IDE**: RAD Studio / Delphi 12.1 or newer
+- **Target platform**: `Win64`
+- **MPI runtime (MPI config only)**: Microsoft MPI (MSMPI)
 
-### Step 3: Compilation
-Build the project strictly for the **64-bit Windows** platform. Executing in 32-bit mode will result in out-of-memory exceptions when handling matrices larger than 2048x2048.
+> 32-bit builds are not recommended for large matrix workloads due to memory limitations.
 
-## Running the Benchmark
+---
 
-1. Execute `DelphiMatrixBenchmark.exe`.
-2. Configure the matrix dimensions (N x N) and the block sizes for the recursive algorithms using the UI.
-3. Select the specific implementations you wish to compare.
-4. Run the suite. The application automatically validates the correctness of the results against a standard sequential baseline before logging the execution times for your dataset.
+## Dependencies
 
-## Academic Citation
+This project combines **HPC-Delphi custom libraries** and **third-party libraries/toolkits**.
 
-If you use this benchmarking suite or the associated data in your research, please cite it using the metadata provided in the `CITATION.cff` file located in the root of this repository.
+## 1) HPC-Delphi custom dependencies (GitHub organization)
+
+These repositories are part of the same research ecosystem and are required by this client:
+
+- [`offc_delphi`](https://github.com/HPC-Delphi/offc_delphi)  
+  C/OpenMP/AVX2 kernels exposed to Delphi via `OffC.pas`.
+
+- [`vector_simd_delphi`](https://github.com/HPC-Delphi/vector_simd_delphi)  
+  SIMD helper wrapper used by Intel SIMD paths.
+
+- [`mkl_delphi`](https://github.com/HPC-Delphi/mkl_delphi)  
+  Delphi interface for Intel MKL-backed operations.
+
+- [`mpi_delphi`](https://github.com/HPC-Delphi/mpi_delphi) *(MPI configuration only)*  
+  Delphi bindings for MPI primitives used by distributed algorithms.
+
+### Expected custom DLLs
+
+- `offc_delphi.dll`
+- `vector_simd_delphi.dll`
+- `mkl_delphi.dll`
+- `mpi_delphi.dll` *(MPI configuration only)*
+
+## 2) Third-party libraries referenced by the project
+
+From `DelphiMatrixBenchmark.dproj` and source units:
+
+- **ALGLIB (Delphi wrapper)** (`xalglib`)
+- **LinAlg / CBLAS wrapper** (`LinAlg.cblas_dgemm`)
+- **mrMath** (`FMAMatrixMult*` routines)
+- **OptiVec for Delphi** (`vecLib`, `VDstd`, `VDmath`)
+- **FastMath** (Delphi math utilities)
+- **OmniThreadLibrary** (`OTLParallel`)
+- **TeeChart VCL** (GUI chart rendering)
+- **JEDI VCL (JVCL)** (project-level UI dependency noted in paper project docs)
+
+## 3) External runtimes / toolchains
+
+- **Intel oneAPI Base Toolkit** (for MKL workflows and OpenMP runtime support)
+- **Microsoft MPI (MSMPI)** runtime + SDK *(for MPI configuration)*
+
+---
+
+## Dependency setup in RAD Studio
+
+Open the project in RAD Studio and configure:
+
+`Project -> Options -> Building -> Delphi Compiler -> Search path`
+
+### Base search paths (used by Release and inherited by MPI)
+
+```text
+C:\Users\user\Software\DelphiHPC\libraries\third_party\linalg\Delphi12-Win64
+C:\Users\user\Software\DelphiHPC\libraries\third_party\mrMath
+C:\Users\user\Software\DelphiHPC\libraries\third_party\OptiVec_for_Delphi\win64\Lib8
+C:\Users\user\Software\DelphiHPC\libraries\third_party\alglib-delphi\wrapper
+C:\Users\user\Software\DelphiHPC\libraries\third_party\FastMath\FastMath
+C:\Users\user\Software\DelphiHPC\libraries\custom\offc_delphi\interface
+C:\Users\user\Software\DelphiHPC\libraries\custom\vector_simd_delphi\interface
+C:\Users\user\Software\DelphiHPC\libraries\custom\mkl_delphi\interface
+C:\Program Files (x86)\Steema Software\Steema TeeChart Standard VCL FMX 2026.46\Delphi29\Delphi29.win64\Lib
+```
+
+### Additional search path for MPI configuration
+
+```text
+C:\Users\user\Software\DelphiHPC\libraries\custom\mpi_delphi\interface
+```
+
+---
+
+## Build configurations
+
+The project defines two primary Win64 configurations:
+
+### `Release`
+
+- Compiler define: `RELEASE`
+- Includes local/shared-memory algorithms:
+  - Base, OffC-Base
+  - PPL, OTL, OffC-OMP
+  - IntelSIMD / OffC-AVX2 / PPL+IntelSIMD / OffC-OMP+AVX2
+  - ALGLIB, LINALG, mrmath, OffC-MKL
+
+### `MPI`
+
+- Compiler define: `MPI`
+- Inherits all base dependencies and adds MPI interfaces.
+- Adds distributed variants:
+  - `MPI+Base`
+  - `MPI+PPL+IntelSIMD`
+  - `MPI+OffC-OMP+AVX2`
+  - `MPI+OffC-MKL`
+- Runtime behavior changes (`DelphiMatrixBenchmark.dpr`):
+  - rank 0 hosts GUI and orchestrates runs
+  - worker ranks wait for algorithm broadcasts and execute compute kernels
+
+---
+
+## DLL deployment (critical)
+
+For reproducible execution, copy required DLLs into the output folder of the selected configuration:
+
+- `Win64\Release\`
+- `Win64\MPI\`
+
+At minimum:
+
+- `offc_delphi.dll`
+- `vector_simd_delphi.dll`
+- `mkl_delphi.dll`
+- `alglib405_64hpc.dll`
+- `mpi_delphi.dll` *(MPI only)*
+
+> In this project, `alglib405_64hpc.dll` is expected to be physically present in the output directory (not only in global `PATH`).
+
+---
+
+## RAD Studio build guide (step-by-step)
+
+### A) Build `Release`
+
+1. Open `DelphiMatrixBenchmark.dproj` in RAD Studio.
+2. Set **Target Platform** to `Win64`.
+3. Select **Build Configuration** = `Release`.
+4. Verify search paths listed above (base set).
+5. Build the custom dependency DLLs (`offc_delphi`, `vector_simd_delphi`, `mkl_delphi`) and copy DLLs to `Win64\Release\`.
+6. Ensure `alglib405_64hpc.dll` is also copied to `Win64\Release\`.
+7. Build project: **Project -> Build DelphiMatrixBenchmark**.
+
+### B) Build `MPI`
+
+1. Select **Build Configuration** = `MPI`.
+2. Confirm `mpi_delphi\interface` is present in search path.
+3. Ensure MSMPI runtime is installed.
+4. Copy all required DLLs to `Win64\MPI\`, including `mpi_delphi.dll`.
+5. Build project.
+
+### C) Run `MPI` executable
+
+Run using `mpiexec` (example with 4 ranks):
+
+```bat
+mpiexec -n 4 Win64\MPI\DelphiMatrixBenchmark.exe
+```
+
+---
+
+## Building `mkl_delphi` (if needed)
+
+If you need to rebuild `mkl_delphi` using Intel oneAPI + MS Build Tools:
+
+```bat
+:: 1) Point Intel script to VS Build Tools
+set "VS2022INSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools"
+
+:: 2) Load oneAPI environment
+call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+
+:: 3) Build mkl_delphi
+cd C:\Users\user\Software\DelphiHPC\libraries\custom\mkl_delphi
+nmake
+```
+
+Optional OpenMP runtime path (environment-dependent):
+
+```text
+C:\Program Files (x86)\Intel\oneAPI\compiler\2026.0\lib
+```
+
+---
+
+## Running benchmarks
+
+1. Launch the executable (`Release` or `MPI` build output).
+2. Configure benchmark parameters:
+   - `M`, `K`, `N` (matrix dimensions)
+   - `T` (thread count for relevant algorithms)
+   - `S` (number of repetitions)
+3. Select one or more algorithm implementations.
+4. Execute benchmark.
+5. Review:
+   - tabular metrics: `Total`, `Avg`, `Min`, `Max`
+   - comparative bar chart
+
+The runner validates numerical correctness before accepting timing results.
+
+---
+
+## Notes and known constraints
+
+- MPI implementations assume `M` is divisible by process count in current scatter/gather strategy.
+- This repository includes auxiliary units (e.g., `LUImpls.pas`) not wired into the default algorithm list shown by the GUI factory.
+- Prefer `Win64` only for realistic HPC-size matrices.
+
+---
+
+## Academic citation
+
+If you use this software in your research, please cite it using the metadata provided in `CITATION.cff`.
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License. See `LICENSE` for details.
