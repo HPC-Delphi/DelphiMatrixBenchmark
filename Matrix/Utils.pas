@@ -43,7 +43,7 @@ begin
   for i := 0 to Rows - 1 do
   begin
     for j := 0 to Columns - 1 do
-      Write(Format('%.4f ', [M[i * Rows + j]]));
+      Write(Format('%.4f ', [M[i * Columns + j]]));
     Writeln;
   end;
   Writeln;

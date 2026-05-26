@@ -16,17 +16,29 @@ implementation
 
 class function TFactory.GetAvailable: TArray<string>;
 begin
-  Result := ['Base', 'OffC-Base', 'OptiVec-VectorLib', 'IntelSIMD', 'OffC-AVX2',
-    'ASM', 'PPL', 'OTL', 'OffC-OMP', 'PPL+IntelSIMD', 'OffC-OMP+AVX2', 'ALGLIB',
-    'LINALG', 'mrmath', 'OffC-MKL'
 {$IFDEF MPI}
-    , 'MPI+Base', 'MPI+PPL+IntelSIMD', 'MPI+OffC-OMP+AVX2', 'MPI+OffC-MKL'
+  Result := ['MPI+Base', 'MPI+PPL+VectorSIMD', 'MPI+OffC-OMP+AVX2', 'MPI+OffC-MKL'];
+{$ELSE}
+  Result := ['Base', 'OffC-Base', 'OptiVec-VectorLib', 'VectorSIMD', 'OffC-AVX2',
+    'ASM', 'PPL', 'OTL', 'OffC-OMP', 'PPL+VectorSIMD', 'OffC-OMP+AVX2', 'ALGLIB',
+    'LINALG', 'mrmath', 'OffC-MKL'];
 {$ENDIF}
-    ]
 end;
 
 class function TFactory.CreateByName(const Name: string): IMultiplier;
 begin
+{$IFDEF MPI}
+  if Name = 'MPI+Base' then
+    Result := TMPIBase.Create
+  else if Name = 'MPI+PPL+VectorSIMD' then
+    Result := TMPIPPLVectorSIMD.Create
+  else if Name = 'MPI+OffC-OMP+AVX2' then
+    Result := TMPIOffCOMPAVX2.Create
+  else if Name = 'MPI+OffC-MKL' then
+    Result := TMPIOffCMKL.Create
+  else
+    Result := nil;
+{$ELSE}
   // Base
   if Name = 'Base' then
     Result := TBase.Create
@@ -35,8 +47,8 @@ begin
     // Vec
   else if Name = 'OptiVec-VectorLib' then
     Result := TOptiVecVectorLib.Create
-  else if Name = 'IntelSIMD' then
-    Result := TIntelSIMD.Create
+  else if Name = 'VectorSIMD' then
+    Result := TVectorSIMD.Create
   else if Name = 'OffC-AVX2' then
     Result := TOffCAVX2.Create
   else if Name = 'ASM' then
@@ -49,8 +61,8 @@ begin
   else if Name = 'OffC-OMP' then
     Result := TOffCOMP.Create
     // Par+Vec
-  else if Name = 'PPL+IntelSIMD' then
-    Result := TPPLIntelSIMD.Create
+  else if Name = 'PPL+VectorSIMD' then
+    Result := TPPLVectorSIMD.Create
   else if Name = 'OffC-OMP+AVX2' then
     Result := TOffCOMPAVX2.Create
     // Linear Algebra
@@ -62,18 +74,9 @@ begin
     Result := Tmrmath.Create
   else if Name = 'OffC-MKL' then
     Result := TOffCMKL.Create
-{$IFDEF MPI}
-  else if Name = 'MPI+Base' then
-    Result := TMPIBase.Create
-  else if Name = 'MPI+PPL+IntelSIMD' then
-    Result := TMPIPPLIntelSIMD.Create
-  else if Name = 'MPI+OffC-OMP+AVX2' then
-    Result := TMPIOffCOMPAVX2.Create
-  else if Name = 'MPI+OffC-MKL' then
-    Result := TMPIOffCMKL.Create
-{$ENDIF}
   else
     Result := nil;
+{$ENDIF}
 end;
 
 end.

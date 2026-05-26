@@ -1,15 +1,17 @@
-unit MultImpls;
+ï»¿unit MultImpls;
 
 interface
 
 uses
   SysUtils, Diagnostics, Math, Utils, Multiplier,
-  MKL, XALGLIB, LinAlg, FMAMatrixMultOperationsx64,
-  OffC,
-  System.Threading, OTLParallel,
-  FMAMatrixMultTransposedOperationsx64, VectorSIMD, vecLib, VDstd, VDmath
+  OffC, System.Threading,
+  MKL, VectorSIMD
+{$IFNDEF MPI}
+  , XALGLIB, LinAlg, FMAMatrixMultOperationsx64,
+  OTLParallel, FMAMatrixMultTransposedOperationsx64, vecLib, VDstd, VDmath
+{$ENDIF}
 {$IFDEF MPI}
-    , MPI
+  , MPI
 {$ENDIF};
 
 type
@@ -37,11 +39,13 @@ type
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
   end;
 
+{$IFNDEF MPI}
   TOTL = class(TInterfacedObject, IMultiplier)
   public
     function GetName: string;
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
   end;
+{$ENDIF}
 
   TOffCOMP = class(TInterfacedObject, IMultiplier)
   public
@@ -50,13 +54,15 @@ type
   end;
 
   // Vec
+{$IFNDEF MPI}
   TOptiVecVectorLib = class(TInterfacedObject, IMultiplier)
   public
     function GetName: string;
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
   end;
+{$ENDIF}
 
-  TIntelSIMD = class(TInterfacedObject, IMultiplier)
+  TVectorSIMD = class(TInterfacedObject, IMultiplier)
   public
     function GetName: string;
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
@@ -68,15 +74,17 @@ type
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
   end;
 
+{$IFNDEF MPI}
   TASM = class(TInterfacedObject, IMultiplier)
   public
     function GetName: string;
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
   end;
+{$ENDIF}
 
   // Par+Vec
   // Se elige PPL porque obtiene mejor rendiemiento que OTL
-  TPPLIntelSIMD = class(TInterfacedObject, IMultiplier)
+  TPPLVectorSIMD = class(TInterfacedObject, IMultiplier)
   public
     function GetName: string;
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
@@ -89,6 +97,7 @@ type
   end;
 
   // Linear Algebra / Optimized libraries
+{$IFNDEF MPI}
   TALGLIB = class(TInterfacedObject, IMultiplier)
   public
     function GetName: string;
@@ -106,6 +115,7 @@ type
     function GetName: string;
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
   end;
+{$ENDIF}
 
   TOffCMKL = class(TInterfacedObject, IMultiplier)
   public
@@ -123,7 +133,7 @@ type
   end;
 
   // MPI+Par+Vec
-  TMPIPPLIntelSIMD = class(TInterfacedObject, IMultiplier)
+  TMPIPPLVectorSIMD = class(TInterfacedObject, IMultiplier)
   public
     function GetName: string;
     function Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
@@ -210,36 +220,41 @@ begin
   Stopwatch := TStopWatch.StartNew;
   // Compute
   Pool := TThreadPool.Create;
-  Pool.SetMinWorkerThreads(T);
-  Pool.SetMaxWorkerThreads(T);
+  try
+    Pool.SetMinWorkerThreads(T);
+    Pool.SetMaxWorkerThreads(T);
 
-  RowsPerThread := Ceil(M / T);
-  TParallel.For(0, T - 1,
-    procedure(ThreadID: Integer)
-    var
-      i, j, p: Integer;
-      aip: Double;
-      iStart, iEnd: Integer;
-    begin
-      iStart := ThreadID * RowsPerThread;
-      iEnd := Min(iStart + RowsPerThread - 1, M - 1);
-
-      for i := iStart to iEnd do
+    RowsPerThread := Ceil(M / T);
+    TParallel.For(0, T - 1,
+      procedure(ThreadID: Integer)
+      var
+        i, j, p: Integer;
+        aip: Double;
+        iStart, iEnd: Integer;
       begin
-        for p := 0 to K - 1 do
+        iStart := ThreadID * RowsPerThread;
+        iEnd := Min(iStart + RowsPerThread - 1, M - 1);
+
+        for i := iStart to iEnd do
         begin
-          aip := A_cp[i * K + p];
-          for j := 0 to N - 1 do
+          for p := 0 to K - 1 do
           begin
-            C_cp[i * N + j] := C_cp[i * N + j] + aip * B_cp[p * N + j];
+            aip := A_cp[i * K + p];
+            for j := 0 to N - 1 do
+            begin
+              C_cp[i * N + j] := C_cp[i * N + j] + aip * B_cp[p * N + j];
+            end;
           end;
         end;
-      end;
-    end, Pool);
+      end, Pool);
+  finally
+    Pool.Free;
+  end;
   Stopwatch.Stop;
   Result := Stopwatch.ElapsedMilliseconds / 1000.0;
 end;
 
+{$IFNDEF MPI}
 function TOTL.GetName: string;
 begin
   Result := 'OTL';
@@ -283,6 +298,7 @@ begin
   Stopwatch.Stop;
   Result := Stopwatch.ElapsedMilliseconds / 1000.0;
 end;
+{$ENDIF}
 
 function TOffCOMP.GetName: string;
 begin
@@ -301,6 +317,7 @@ begin
 end;
 
 // Vec
+{$IFNDEF MPI}
 function TOptiVecVectorLib.GetName: string;
 begin
   Result := 'OptiVec-VectorLib';
@@ -345,13 +362,14 @@ begin
   V_free(ArrSum);
   V_free(TmpMul);
 end;
+{$ENDIF}
 
-function TIntelSIMD.GetName: string;
+function TVectorSIMD.GetName: string;
 begin
-  Result := 'IntelSIMD';
+  Result := 'VectorSIMD';
 end;
 
-function TIntelSIMD.Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
+function TVectorSIMD.Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
 var
   i, j: Integer;
   ArrSum: array of Double;
@@ -403,9 +421,10 @@ begin
 end;
 
 // Vec
+{$IFNDEF MPI}
 function TASM.GetName: string;
 begin
-  Result := 'Assembler';
+  Result := 'ASM';
 end;
 
 function TASM.Multiply(var A, B, C: TMatrix; M, K, N, T: Integer): Double;
@@ -431,14 +450,15 @@ begin
 
   SetLength(B_t, 0);
 end;
+{$ENDIF}
 
 // Par+Vec
-function TPPLIntelSIMD.GetName: string;
+function TPPLVectorSIMD.GetName: string;
 begin
-  Result := 'PPL+IntelSIMD';
+  Result := 'PPL+VectorSIMD';
 end;
 
-function TPPLIntelSIMD.Multiply(var A, B, C: TMatrix;
+function TPPLVectorSIMD.Multiply(var A, B, C: TMatrix;
 M, K, N, T: Integer): Double;
 var
   A_cp, B_t, C_cp: TMatrix;
@@ -452,45 +472,49 @@ begin
   Stopwatch := TStopWatch.StartNew;
   // Transform
   // Si se usa por un proceso MPI, e asume que la
-  // matriz B está transpuesta
+  // matriz B estï¿½ transpuesta
   SetLength(B_t, N * K);
   TransposeMatrix(B, B_t, K, N);
 
   // Compute
   Pool := TThreadPool.Create;
-  Pool.SetMinWorkerThreads(T);
-  Pool.SetMaxWorkerThreads(T);
+  try
+    Pool.SetMinWorkerThreads(T);
+    Pool.SetMaxWorkerThreads(T);
 
-  RowsPerThread := Ceil(M / T);
-  TParallel.For(0, T - 1,
-    procedure(ThreadID: Integer)
-    var
-      i, j: Integer;
-      ArrSum: array of Double;
-      sum: Double;
-      iStart, iEnd: Integer;
-    begin
-      iStart := ThreadID * RowsPerThread;
-      iEnd := Min(iStart + RowsPerThread - 1, M - 1);
-
-      SetLength(ArrSum, K);
-      for i := iStart to iEnd do
+    RowsPerThread := Ceil(M / T);
+    TParallel.For(0, T - 1,
+      procedure(ThreadID: Integer)
+      var
+        i, j: Integer;
+        ArrSum: array of Double;
+        sum: Double;
+        iStart, iEnd: Integer;
       begin
-        for j := 0 to N - 1 do
+        iStart := ThreadID * RowsPerThread;
+        iEnd := Min(iStart + RowsPerThread - 1, M - 1);
+
+        SetLength(ArrSum, K);
+        for i := iStart to iEnd do
         begin
-          FillChar(ArrSum[0], K * SizeOf(Double), 0);
+          for j := 0 to N - 1 do
+          begin
+            FillChar(ArrSum[0], K * SizeOf(Double), 0);
 
-          // Vectorized compute
-          VectorFMA(@A_cp[i * K], @B_t[j * K], @ArrSum[0], K);
+            // Vectorized compute
+            VectorFMA(@A_cp[i * K], @B_t[j * K], @ArrSum[0], K);
 
-          // Horizontal reduction
-          VectorReduce(@ArrSum[0], @sum, K);
+            // Horizontal reduction
+            VectorReduce(@ArrSum[0], @sum, K);
 
-          C_cp[i * N + j] := sum
+            C_cp[i * N + j] := sum
+          end;
         end;
-      end;
-      SetLength(ArrSum, 0);
-    end, Pool);
+        SetLength(ArrSum, 0);
+      end, Pool);
+  finally
+    Pool.Free;
+  end;
   Stopwatch.Stop;
   Result := Stopwatch.ElapsedMilliseconds / 1000.0;
 
@@ -515,6 +539,7 @@ begin
 end;
 
 // Linear Algebra
+{$IFNDEF MPI}
 function TALGLIB.GetName: string;
 begin
   Result := 'ALGLIB';
@@ -596,8 +621,8 @@ begin
     K, lineWidth1, lineWidth2);
   Stopwatch.Stop;
   Result := Stopwatch.ElapsedMilliseconds / 1000.0;
-  SetLength(B, 0);
 end;
+{$ENDIF}
 
 function TOffCMKL.GetName: string;
 begin
@@ -650,6 +675,7 @@ begin
   MPI_Bcast(@K, 1, MPI_INT, 0);
   MPI_Bcast(@T, 1, MPI_INT, 0);
 
+  // NOTE: current MPI partition assumes M is divisible by ProcessCount.
   RowsPerProc := M div ProcessCount;
   SetLength(SubA, RowsPerProc * K);
   if Rank <> 0 then
@@ -684,12 +710,12 @@ begin
 end;
 
 // MPI-ParVec
-function TMPIPPLIntelSIMD.GetName: string;
+function TMPIPPLVectorSIMD.GetName: string;
 begin
-  Result := 'MPI+PPL+IntelSIMD';
+  Result := 'MPI+PPL+VectorSIMD';
 end;
 
-function TMPIPPLIntelSIMD.Multiply(var A, B, C: TMatrix;
+function TMPIPPLVectorSIMD.Multiply(var A, B, C: TMatrix;
 M, K, N, T: Integer): Double;
 var
   ProcessCount, RowsPerProc, Rank: Integer;
@@ -713,6 +739,7 @@ begin
   MPI_Bcast(@K, 1, MPI_INT, 0);
   MPI_Bcast(@T, 1, MPI_INT, 0);
 
+  // NOTE: current MPI partition assumes M is divisible by ProcessCount.
   RowsPerProc := M div ProcessCount;
   SetLength(SubA, RowsPerProc * K);
   if Rank <> 0 then
@@ -728,7 +755,7 @@ begin
   { Broadcasts matrix B from process 0 to all processes }
   MPI_Bcast(B, K * N, MPI_DOUBLE, 0);
 
-  TPPLIntelSIMD.Create.Multiply(SubA, B, SubC, RowsPerProc, K, N, T);
+  TPPLVectorSIMD.Create.Multiply(SubA, B, SubC, RowsPerProc, K, N, T);
 
   { Gathers rows of matrix C from processes }
   MPI_Gather(SubC, RowsPerProc * N, MPI_DOUBLE, C, RowsPerProc * N,
@@ -774,6 +801,7 @@ begin
   MPI_Bcast(@K, 1, MPI_INT, 0);
   MPI_Bcast(@T, 1, MPI_INT, 0);
 
+  // NOTE: current MPI partition assumes M is divisible by ProcessCount.
   RowsPerProc := M div ProcessCount;
   SetLength(SubA, RowsPerProc * K);
   if Rank <> 0 then
@@ -838,6 +866,7 @@ begin
   MPI_Bcast(@K, 1, MPI_INT, 0);
   MPI_Bcast(@T, 1, MPI_INT, 0);
 
+  // NOTE: current MPI partition assumes M is divisible by ProcessCount.
   RowsPerProc := M div ProcessCount;
   SetLength(SubA, RowsPerProc * K);
   if Rank <> 0 then

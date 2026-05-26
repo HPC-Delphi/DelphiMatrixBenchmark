@@ -2,13 +2,12 @@
 
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2011-blue)](https://www.microsoft.com/en-us/windows/windows-11)
 [![RAD Studio](https://img.shields.io/badge/RAD%20Studio-Delphi%2012.1-red)](https://www.embarcadero.com/products/delphi)
-[![Build Configs](https://img.shields.io/badge/Configs-Release%20%7C%20MPI-purple)](#build-configurations)
 
 `DelphiMatrixBenchmark` is the desktop client application used in the **HPC-Delphi** research project to run, validate, and compare matrix multiplication implementations across multiple execution models:
 
 - sequential baseline
 - shared-memory parallelism (PPL, OTL, OpenMP)
-- vectorized/SIMD kernels (Intel SIMD, AVX2)
+- vectorized/SIMD kernels (VectorSIMD, AVX2)
 - optimized linear algebra backends (ALGLIB, LinAlg/CBLAS, mrMath, MKL)
 - distributed-memory MPI variants (MPI configuration)
 
@@ -32,25 +31,28 @@ The application provides a GUI to select algorithms, set benchmark parameters, e
 
 ```mermaid
 flowchart TD
+    subgraph MPI_Mode[Only in MPI configuration]
+      MPIINIT[DelphiMatrixBenchmark.dpr<br/>MPI_Init · rank split]
+    end
+
+    MPIINIT -->|rank 0| UI
+    MPIINIT -->|worker ranks| IMPL
+
     UI[Form.pas<br/>VCL GUI] --> CFG[Benchmark/Config.pas<br/>M,K,N,T,S]
     UI --> FAC[Matrix/Factory.pas<br/>Algorithm registry]
     UI --> RUN[Benchmark/Runner.pas<br/>Execution loop]
 
     FAC --> IMPL[Matrix/MultImpls.pas<br/>IMultiplier implementations]
-
+    RUN --> IMPL
     RUN --> VAL[Benchmark/Validator.pas<br/>Correctness check]
     RUN --> RES[Benchmark/Result.pas<br/>Total/Avg/Min/Max]
 
-    IMPL --> CORE1[Native Delphi<br/>Base/PPL/OTL]
-    IMPL --> CORE2[Custom HPC-Delphi DLLs<br/>OffC / VectorSIMD / MKL]
+    IMPL --> CORE1[Native Delphi<br/>Base / PPL / OTL / ASM]
+    IMPL --> CORE2[HPC-Delphi DLLs<br/>OffC / VectorSIMD / MKL]
     IMPL --> CORE3[Third-party libs<br/>ALGLIB / LinAlg / mrMath / OptiVec]
 
-    subgraph MPI_Mode[Only in MPI configuration]
-      MPIMAIN[DelphiMatrixBenchmark.dpr<br/>MPI Init / rank orchestration]
-      MPILIB[mpi_delphi wrapper + MSMPI runtime]
-      MPIMAIN --> RUN
-      IMPL --> MPILIB
-    end
+    RUN --> MPILIB[mpi_delphi + MSMPI<br/>&#40;MPI config only&#41;]
+    IMPL --> MPILIB
 ```
 
 ---
@@ -87,120 +89,143 @@ DelphiMatrixBenchmark/
 The project is developed and validated in the following environment:
 
 - **Operating System**: Windows 11 (64-bit)
-- **IDE**: RAD Studio / Delphi 12.1 or newer
+- **IDE**: RAD Studio / Delphi 12.1
 - **Target platform**: `Win64`
 - **MPI runtime (MPI config only)**: Microsoft MPI (MSMPI)
-
-> 32-bit builds are not recommended for large matrix workloads due to memory limitations.
 
 ---
 
 ## Dependencies
 
-This project combines **HPC-Delphi custom libraries** and **third-party libraries/toolkits**.
+This project uses two explicit dependency profiles (`Release` and `MPI`).
+The key idea is:
+- `Release` includes local/shared-memory algorithms and their extra third-party libraries.
+- `MPI` includes distributed algorithms and MPI stack, without requiring Release-only third-party libraries.
 
-## 1) HPC-Delphi custom dependencies (GitHub organization)
+### 1) Dependency matrix (by type and configuration)
 
-These repositories are part of the same research ecosystem and are required by this client:
+| Type | Component | Release | MPI | Why |
+|---|---|:---:|:---:|---|
+| Toolkit | RAD Studio / Delphi 12.1 (Win64) | ✅ | ✅ | Build system / IDE |
+| Library (HPC-Delphi) | `offc_delphi` | ✅ | ✅ | Core + MPI hybrid (`MPI+OffC-OMP+AVX2`) |
+| Library (HPC-Delphi) | `vector_simd_delphi` | ✅ | ✅ | Core + MPI hybrid (`MPI+PPL+VectorSIMD`) |
+| Library (HPC-Delphi) | `mkl_delphi` | ✅ | ✅ | Core + MPI hybrid (`MPI+OffC-MKL`) |
+| Library (HPC-Delphi) | `mpi_delphi` | ❌ | ✅ | Delphi bindings for MPI primitives |
+| Library (third-party) | ALGLIB | ✅ | ❌ | Release-only implementations |
+| Library (third-party) | Winsoft Linear Algebra (LinAlg) | ✅ | ❌ | Release-only implementations |
+| Library (third-party) | mrMath / FastMath units | ✅ | ❌ | Release-only implementations |
+| Library (third-party) | OptiVec | ✅ | ❌ | Release-only implementations |
+| Library (third-party) | OmniThreadLibrary (OTL) | ✅ | ❌ | Release-only implementations |
+| Library (UI) | TeeChart VCL | ✅ | ✅ | Result visualization |
+| Toolkit | Intel oneAPI Base Toolkit | ✅ | ✅ | MKL/OpenMP environment |
+| Runtime | MSMPI Runtime | ❌ | ✅ | Required to execute MPI binaries |
 
-- [`offc_delphi`](https://github.com/HPC-Delphi/offc_delphi)  
-  C/OpenMP/AVX2 kernels exposed to Delphi via `OffC.pas`.
+### 2) Dependency catalog
 
-- [`vector_simd_delphi`](https://github.com/HPC-Delphi/vector_simd_delphi)  
-  SIMD helper wrapper used by Intel SIMD paths.
+#### HPC-Delphi libraries
+- [`offc_delphi`](https://github.com/HPC-Delphi/offc_delphi)
+- [`vector_simd_delphi`](https://github.com/HPC-Delphi/vector_simd_delphi)
+- [`mkl_delphi`](https://github.com/HPC-Delphi/mkl_delphi)
+- [`mpi_delphi`](https://github.com/HPC-Delphi/mpi_delphi) *(MPI only)*
 
-- [`mkl_delphi`](https://github.com/HPC-Delphi/mkl_delphi)  
-  Delphi interface for Intel MKL-backed operations.
+#### Third-party libraries
+- [ALGLIB](https://www.alglib.net/)
+- [Winsoft Linear Algebra](https://winsoft.sk/linalg.htm)
+- [mrMath](https://github.com/mikerabat/mrmath)
+- [OptiVec](https://www.optivec.com/)
+- [FastMath](https://github.com/neslib/FastMath)
+- [OmniThreadLibrary](http://www.omnithreadlibrary.com/)
+- [Steema TeeChart VCL](https://steema.com/product/vcl)
 
-- [`mpi_delphi`](https://github.com/HPC-Delphi/mpi_delphi) *(MPI configuration only)*  
-  Delphi bindings for MPI primitives used by distributed algorithms.
+#### Toolkits / SDKs
+- RAD Studio / Delphi 12.1 (Win64)
+- Intel oneAPI Base Toolkit
+- Microsoft MPI SDK *(MPI only)*
 
-### Expected custom DLLs
-
-- `offc_delphi.dll`
-- `vector_simd_delphi.dll`
-- `mkl_delphi.dll`
-- `mpi_delphi.dll` *(MPI configuration only)*
-
-## 2) Third-party libraries referenced by the project
-
-From `DelphiMatrixBenchmark.dproj` and source units:
-
-- **ALGLIB (Delphi wrapper)** (`xalglib`)
-- **LinAlg / CBLAS wrapper** (`LinAlg.cblas_dgemm`)
-- **mrMath** (`FMAMatrixMult*` routines)
-- **OptiVec for Delphi** (`vecLib`, `VDstd`, `VDmath`)
-- **FastMath** (Delphi math utilities)
-- **OmniThreadLibrary** (`OTLParallel`)
-- **TeeChart VCL** (GUI chart rendering)
-- **JEDI VCL (JVCL)** (project-level UI dependency noted in paper project docs)
-
-## 3) External runtimes / toolchains
-
-- **Intel oneAPI Base Toolkit** (for MKL workflows and OpenMP runtime support)
-- **Microsoft MPI (MSMPI)** runtime + SDK *(for MPI configuration)*
-
----
+#### Runtimes
+- Microsoft MPI Runtime *(MPI only)*
 
 ## Dependency setup in RAD Studio
 
-Open the project in RAD Studio and configure:
-
+Configure search paths in:
 `Project -> Options -> Building -> Delphi Compiler -> Search path`
 
-### Base search paths (used by Release and inherited by MPI)
+### Common paths (Release + MPI)
 
 ```text
-C:\Users\user\Software\DelphiHPC\libraries\third_party\linalg\Delphi12-Win64
-C:\Users\user\Software\DelphiHPC\libraries\third_party\mrMath
-C:\Users\user\Software\DelphiHPC\libraries\third_party\OptiVec_for_Delphi\win64\Lib8
-C:\Users\user\Software\DelphiHPC\libraries\third_party\alglib-delphi\wrapper
-C:\Users\user\Software\DelphiHPC\libraries\third_party\FastMath\FastMath
-C:\Users\user\Software\DelphiHPC\libraries\custom\offc_delphi\interface
-C:\Users\user\Software\DelphiHPC\libraries\custom\vector_simd_delphi\interface
-C:\Users\user\Software\DelphiHPC\libraries\custom\mkl_delphi\interface
-C:\Program Files (x86)\Steema Software\Steema TeeChart Standard VCL FMX 2026.46\Delphi29\Delphi29.win64\Lib
+path\to\offc_delphi\interface
+path\to\vector_simd_delphi\interface
+path\to\mkl_delphi\interface
 ```
 
-### Additional search path for MPI configuration
+### Release-only paths
 
 ```text
-C:\Users\user\Software\DelphiHPC\libraries\custom\mpi_delphi\interface
+path\to\alglib-delphi\wrapper
+path\to\linalg\Delphi12-Win64
+path\to\mrMath
+path\to\OptiVec_for_Delphi\win64\Lib8
+path\to\FastMath\FastMath
 ```
+
+### MPI-only path
+
+```text
+path\to\mpi_delphi\interface
+```
+
+Note: these profiles are intentionally separated so MPI builds do not require Release-only third-party libraries.
 
 ---
 
 ## Build configurations
 
-The project defines two primary Win64 configurations:
+The project defines two Win64 configurations with exclusive algorithm sets.
 
 ### `Release`
-
 - Compiler define: `RELEASE`
-- Includes local/shared-memory algorithms:
-  - Base, OffC-Base
-  - PPL, OTL, OffC-OMP
-  - IntelSIMD / OffC-AVX2 / PPL+IntelSIMD / OffC-OMP+AVX2
-  - ALGLIB, LINALG, mrmath, OffC-MKL
+- Available implementations:
+  - `Base`, `OffC-Base`
+  - `PPL`, `OTL`, `OffC-OMP`
+  - `VectorSIMD`, `OffC-AVX2`, `ASM`
+  - `PPL+VectorSIMD`, `OffC-OMP+AVX2`
+  - `ALGLIB`, `LINALG`, `mrmath`, `OffC-MKL`
+- Requires Release-only third-party dependencies listed above.
 
 ### `MPI`
-
 - Compiler define: `MPI`
-- Inherits all base dependencies and adds MPI interfaces.
-- Adds distributed variants:
+- Available implementations:
   - `MPI+Base`
-  - `MPI+PPL+IntelSIMD`
+  - `MPI+PPL+VectorSIMD`
   - `MPI+OffC-OMP+AVX2`
   - `MPI+OffC-MKL`
-- Runtime behavior changes (`DelphiMatrixBenchmark.dpr`):
+- Requires common dependencies listed above and `mpi_delphi` + MSMPI.
+- Runtime behavior (`DelphiMatrixBenchmark.dpr`):
   - rank 0 hosts GUI and orchestrates runs
-  - worker ranks wait for algorithm broadcasts and execute compute kernels
+  - worker ranks execute broadcasted MPI algorithms
 
 ---
 
-## DLL deployment (critical)
+## DLL deployment
 
-For reproducible execution, copy required DLLs into the output folder of the selected configuration:
+To run the executable successfully, all required DLLs must be discoverable by Windows.
+Choose one of the following methods:
+
+### Method A: Add DLL directories to system PATH (*Recommended for Development*)
+
+During active development, this avoids copying DLLs after every rebuild.
+
+Add these directories to your Windows `Path` environment variable:
+
+- `path\to\offc_delphi\build`
+- `path\to\vector_simd_delphi\build`
+- `path\to\mkl_delphi\build`
+- `path\to\alglib-delphi\wrapper` *(Release only)*
+- `path\to\mpi_delphi\build` *(MPI only)*
+
+### Method B: Copy DLLs into the executable folder (*Recommended for Distribution*)
+
+Copy required DLLs into the selected build output directory:
 
 - `Win64\Release\`
 - `Win64\MPI\`
@@ -210,10 +235,9 @@ At minimum:
 - `offc_delphi.dll`
 - `vector_simd_delphi.dll`
 - `mkl_delphi.dll`
-- `alglib405_64hpc.dll`
+- `alglib405_64hpc.dll` *(Release only)*
 - `mpi_delphi.dll` *(MPI only)*
-
-> In this project, `alglib405_64hpc.dll` is expected to be physically present in the output directory (not only in global `PATH`).
+- MSMPI runtime available in system `PATH` (e.g., `msmpi.dll`) *(MPI only)*
 
 ---
 
@@ -224,9 +248,11 @@ At minimum:
 1. Open `DelphiMatrixBenchmark.dproj` in RAD Studio.
 2. Set **Target Platform** to `Win64`.
 3. Select **Build Configuration** = `Release`.
-4. Verify search paths listed above (base set).
-5. Build the custom dependency DLLs (`offc_delphi`, `vector_simd_delphi`, `mkl_delphi`) and copy DLLs to `Win64\Release\`.
-6. Ensure `alglib405_64hpc.dll` is also copied to `Win64\Release\`.
+4. Verify common + `Release`-only search paths listed above.
+5. Ensure required runtime DLLs are discoverable using one of these options:
+   - add their directories to system `Path` (development), or
+   - copy them into `Win64\Release\` (distribution).
+6. Confirm at least: `offc_delphi.dll`, `vector_simd_delphi.dll`, `mkl_delphi.dll`, `alglib405_64hpc.dll`.
 7. Build project: **Project -> Build DelphiMatrixBenchmark**.
 
 ### B) Build `MPI`
@@ -234,8 +260,16 @@ At minimum:
 1. Select **Build Configuration** = `MPI`.
 2. Confirm `mpi_delphi\interface` is present in search path.
 3. Ensure MSMPI runtime is installed.
-4. Copy all required DLLs to `Win64\MPI\`, including `mpi_delphi.dll`.
-5. Build project.
+4. Ensure required DLLs are discoverable using one of these options:
+   - add their directories to system `Path` (including MSMPI runtime), or
+   - copy all required DLLs to `Win64\MPI\`.
+5. Confirm at least:
+   - `mpi_delphi.dll`
+   - MSMPI runtime available in `PATH` (e.g., `msmpi.dll`)
+   - `offc_delphi.dll` for `MPI+OffC-OMP+AVX2`
+   - `vector_simd_delphi.dll` for `MPI+PPL+VectorSIMD`
+   - `mkl_delphi.dll` for `MPI+OffC-MKL`
+6. Build project.
 
 ### C) Run `MPI` executable
 
@@ -243,30 +277,6 @@ Run using `mpiexec` (example with 4 ranks):
 
 ```bat
 mpiexec -n 4 Win64\MPI\DelphiMatrixBenchmark.exe
-```
-
----
-
-## Building `mkl_delphi` (if needed)
-
-If you need to rebuild `mkl_delphi` using Intel oneAPI + MS Build Tools:
-
-```bat
-:: 1) Point Intel script to VS Build Tools
-set "VS2022INSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools"
-
-:: 2) Load oneAPI environment
-call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
-
-:: 3) Build mkl_delphi
-cd C:\Users\user\Software\DelphiHPC\libraries\custom\mkl_delphi
-nmake
-```
-
-Optional OpenMP runtime path (environment-dependent):
-
-```text
-C:\Program Files (x86)\Intel\oneAPI\compiler\2026.0\lib
 ```
 
 ---
@@ -288,10 +298,62 @@ The runner validates numerical correctness before accepting timing results.
 
 ---
 
-## Notes and known constraints
+## Known Constraints
 
-- MPI implementations assume `M` is divisible by process count in current scatter/gather strategy.
-- Prefer `Win64` only for realistic HPC-size matrices.
+### Dependency availability and licensing
+
+Some third-party dependencies used in this project may not be permanently available to all users:
+
+- some were used under **trial/evaluation licenses** for the paper,
+- some are **open source**,
+- some are **free-to-use** but not open source.
+
+Because of this, certain compute/linear-algebra implementations may be unavailable in other environments.
+
+### Building without unavailable third-party compute libraries
+
+If one or more compute/linear-algebra dependencies are missing, the project can still be compiled by disabling those implementations.
+
+#### 1) Remove algorithm entries from the registry
+
+Edit `Matrix/Factory.pas`:
+
+- remove the corresponding name(s) from `TFactory.GetAvailable`
+- remove the corresponding `else if Name = '...' then Result := ...` branch(es) from `TFactory.CreateByName`
+
+#### 2) Remove/comment the corresponding implementations
+
+Edit `Matrix/MultImpls.pas`:
+
+- remove unavailable unit(s) from the `uses` clause
+- remove or comment class declarations and implementations tied to those unit(s)
+
+**Dependency -> code mapping**
+
+- **ALGLIB**
+  - Unit: `XALGLIB`
+  - Class: `TALGLIB`
+  - Factory name: `'ALGLIB'`
+
+- **Winsoft Linear Algebra**
+  - Unit: `LinAlg`
+  - Class: `TLinearAlgebra`
+  - Factory name: `'LINALG'`
+
+- **OptiVec**
+  - Units: `vecLib`, `VDstd`, `VDmath`
+  - Class: `TOptiVecVectorLib`
+  - Factory name: `'OptiVec-VectorLib'`
+
+- **mrMath / FastMath-dependent paths**
+  - Units: `FMAMatrixMultOperationsx64`, `FMAMatrixMultTransposedOperationsx64`
+  - Classes: `Tmrmath`, `TASM`
+  - Factory names: `'mrmath'`, `'ASM'`
+
+- **OmniThreadLibrary (OTL)**
+  - Unit: `OTLParallel`
+  - Class: `TOTL`
+  - Factory name: `'OTL'`
 
 ---
 

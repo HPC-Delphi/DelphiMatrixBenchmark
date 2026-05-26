@@ -96,26 +96,30 @@ var
   i: Integer;
 begin
   Button1.Enabled := False;
+  try
+    if not GetParameters(Config) then
+      Exit;
 
-  if not GetParameters(Config) then
-  begin
+    MultList := TList<IMultiplier>.Create;
+    try
+      for i := 0 to CheckListBox2.Items.Count - 1 do
+        if CheckListBox2.Checked[i] then
+          MultList.Add(TFactory.CreateByName(CheckListBox2.Items[i]));
+
+      Runner := TRunner.Create(Config, MultList);
+      try
+        Results := Runner.Run;
+        ShowResults(Results);
+      finally
+        Runner.Free;
+      end;
+    except
+      MultList.Free;
+      raise;
+    end;
+  finally
     Button1.Enabled := True;
-    Exit;
   end;
-
-  MultList := TList<IMultiplier>.Create;
-  for i := 0 to CheckListBox2.Items.Count - 1 do
-    if CheckListBox2.Checked[i] then
-      MultList.Add(TFactory.CreateByName(CheckListBox2.Items[i]));
-
-  Runner := TRunner.Create(Config, MultList);
-  Results := Runner.Run;
-
-  ShowResults(Results);
-
-  Runner.Free;
-
-  Button1.Enabled := True;
 end;
 
 function TForm1.GetParameters(out Config: TBenchmarkConfig): Boolean;

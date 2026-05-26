@@ -68,7 +68,7 @@
         <VerInfo_Locale>2057</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <Custom_Styles>Obsidian|VCLSTYLE|$(BDSCOMMONDIR)\Styles\Obsidian.vsf;Glossy|VCLSTYLE|$(BDSCOMMONDIR)\Styles\Glossy.vsf</Custom_Styles>
-        <DCC_UnitSearchPath>C:\Users\user\Software\DelphiHPC\libraries\third_party\linalg\Delphi12-Win64;C:\Users\user\Software\DelphiHPC\libraries\third_party\mrMath;C:\Users\user\Software\DelphiHPC\libraries\third_party\OptiVec_for_Delphi\win64\Lib8;C:\Users\user\Software\DelphiHPC\libraries\third_party\alglib-delphi\wrapper;C:\Users\user\Software\DelphiHPC\libraries\third_party\FastMath\FastMath;C:\Users\user\Software\DelphiHPC\libraries\custom\offc_delphi\interface;C:\Users\user\Software\DelphiHPC\libraries\custom\vector_simd_delphi\interface;C:\Users\user\Software\DelphiHPC\libraries\custom\mkl_delphi\interface;C:\Program Files (x86)\Steema Software\Steema TeeChart Standard VCL FMX 2026.46\Delphi29\Delphi29.win64\Lib;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>C:\Users\user\Software\DelphiHPC\libraries\custom\offc_delphi\interface;C:\Users\user\Software\DelphiHPC\libraries\custom\vector_simd_delphi\interface;C:\Users\user\Software\DelphiHPC\libraries\custom\mkl_delphi\interface;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UsePackage>vclwinx;fmx;vclie;DbxCommonDriver;bindengine;IndyIPCommon;VCLRESTComponents;FireDACCommonODBC;FireDACCommonDriver;appanalytics;IndyProtocols;vclx;Skia.Package.RTL;IndyIPClient;dbxcds;vcledge;bindcompvclwinx;bindcompfmx;inetdb;FireDACSqliteDriver;DbxClientDriver;soapmidas;vclactnband;fmxFireDAC;dbexpress;DBXMySQLDriver;VclSmp;inet;vcltouch;fmxase;dbrtl;Skia.Package.FMX;fmxdae;FireDACMSAccDriver;CustomIPTransport;vcldsnap;DBXInterBaseDriver;OmniThreadLibraryRuntime;IndySystem;Skia.Package.VCL;vcldb;vclFireDAC;bindcomp;FireDACCommon;IndyCore;RESTBackendComponents;bindcompdbx;rtl;FireDACMySQLDriver;FireDACADSDriver;RESTComponents;DBXSqliteDriver;vcl;IndyIPServer;dsnapxml;dsnapcon;adortl;vclimg;FireDACPgDriver;FireDAC;inetdbxpress;xmlrtl;tethering;bindcompvcl;dsnap;CloudService;fmxobj;bindcompvclsmp;soaprtl;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>
@@ -84,18 +84,17 @@
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <Debugger_IncludeSystemVars>true</Debugger_IncludeSystemVars>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
-        <Debugger_EnvVars>DLLPATH_MPI=C:\Users\user\Software\DelphiHPC\libraries\mpi_delphi\build;$(Debugger_EnvVars)</Debugger_EnvVars>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
         <DCC_DebugInformation>0</DCC_DebugInformation>
+        <DCC_UnitSearchPath>C:\Users\user\Software\DelphiHPC\libraries\third_party\linalg\Delphi12-Win64;C:\Users\user\Software\DelphiHPC\libraries\third_party\mrMath;C:\Users\user\Software\DelphiHPC\libraries\third_party\OptiVec_for_Delphi\win64\Lib8;C:\Users\user\Software\DelphiHPC\libraries\third_party\alglib-delphi\wrapper;C:\Users\user\Software\DelphiHPC\libraries\third_party\FastMath\FastMath;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
@@ -137,7 +136,7 @@
             <Form>$R *.res</Form>
         </DCCReference>
         <DCCReference Include="Matrix\MultImpls.pas">
-            <Form>$R *.res</Form>
+            <Form>$IFDEF MPI</Form>
         </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
@@ -160,6 +159,7 @@
                     <Source Name="MainSource">DelphiMatrixBenchmark.dpr</Source>
                 </Source>
                 <Excluded_Packages>
+                    <Excluded_Packages Name="C:\Program Files (x86)\Steema Software\Steema TeeChart Standard VCL FMX 2026.46\Delphi29\Delphi29.win32\Bin\DclTeeStd929.bpl">TeeChart 2026 Components (For RAD Studio Starter)</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp290.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>

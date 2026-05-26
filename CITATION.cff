@@ -1,21 +1,11 @@
 cff-version: 1.2.0
-message: "If you use this software in your research, please cite it using the metadata below."
-authors:
-  - family-names: "Galdo Galián"
-    given-names: "Daniel"
-    affiliation: "Universidad de Murcia"
+message: "If you use this software, please cite it as below."
 title: "DelphiMatrixBenchmark - HPC Matrix Multiplication Test Suite"
 abstract: "A comprehensive benchmarking suite developed in Delphi to evaluate, validate, and compare the performance of various high-performance matrix multiplication algorithms (Sequential, SIMD, OpenMP, and MPI)."
-type: software
+authors:
+  - family-names: Galdo Galián
+    given-names: Daniel
+    orcid: "https://orcid.org/0009-0000-4952-1649"
 version: 1.0.0
-date-released: 2026-05-19
-license: MIT
+date-released: 2026-05-25
 repository-code: "https://github.com/HPC-Delphi/DelphiMatrixBenchmark"
-keywords:
-  - "benchmarking"
-  - "matrix-multiplication"
-  - "delphi"
-  - "pascal"
-  - "hpc"
-  - "performance-testing"
-  - "reproducibility"
